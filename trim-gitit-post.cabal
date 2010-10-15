@@ -16,4 +16,4 @@ build-type:          Simple
 executable: trim-gitit-post
 Hs-Source-Dirs:      .
 Main-is:             Main.hs
-build-depends:       base<5, text
+build-depends:       base<5, text, TypeCompose >=0.8.0
