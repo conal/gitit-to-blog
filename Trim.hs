@@ -31,7 +31,7 @@ main = do [path] <- getArgs
 onLines :: Unop [Text] -> Unop Text
 onLines = T.lines ~> T.unlines
 
-process :: [Text] -> [Text]
+process :: Unop [Text]
 process = dropWhile (not . has "<!-- references -->")
         . tail  
         . takeWhile (not . has "<div id=\"footer\">")
