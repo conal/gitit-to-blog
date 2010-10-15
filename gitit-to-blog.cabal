@@ -13,7 +13,7 @@ License-File:        COPYING
 Stability:           experimental
 build-type:          Simple
 
-executable: gitit-to-blog
+executable: trim-gitit-post
 Hs-Source-Dirs:      .
 Main-is:             Trim.hs
 build-depends:       base<5, text, TypeCompose >=0.8.0
