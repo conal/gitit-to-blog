@@ -17,3 +17,9 @@ executable: trim-gitit-post
 Hs-Source-Dirs:      .
 Main-is:             Trim.hs
 build-depends:       base<5, text, TypeCompose >=0.8.0
+
+executable: gitit-to-blog
+Hs-Source-Dirs:      .
+Main-is:             Main.hs
+build-depends:       base<5, HTTP
+
