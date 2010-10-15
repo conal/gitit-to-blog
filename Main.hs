@@ -14,15 +14,29 @@
 
 module Main (main) where
 
-import Data.List (isPrefixOf,tails)
+import Control.Applicative ((<$>))
+
+import Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Text.IO as T
+
+import System.Environment (getArgs)
+
+import Control.Compose ((~>),Unop)
 
 main :: IO ()
-main = interact (unlines . process . lines)
+main = do [path] <- getArgs
+          onLines process <$> T.readFile path >>= T.putStr
 
-process :: [String] -> [String]
+onLines :: Unop [Text] -> Unop Text
+onLines = T.lines ~> T.unlines
+
+process :: [Text] -> [Text]
 process = dropWhile (not . has "<!-- references -->")
         . tail  
         . takeWhile (not . has "<div id=\"footer\">")
+ where
+   has :: String -> Text -> Bool
+   has = T.isInfixOf . T.pack
 
-has :: Eq a => [a] -> [a] -> Bool
-has pat = any (pat `isPrefixOf`) . tails
+
