@@ -1,5 +1,6 @@
 -- {-# LANGUAGE #-}
 {-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -fno-warn-unused-binds #-}  -- TEMP
 ----------------------------------------------------------------------
 -- |
 -- Module      :  Main
@@ -21,6 +22,11 @@ import Control.Monad ((>=>))
 
 import System.IO.Unsafe (unsafePerformIO)
 
+-- import qualified Data.ByteString as B
+-- import qualified Data.ByteString.Char8 as C8
+-- import qualified Data.String.UTF8 as U8
+-- import qualified Data.ByteString.UTF8 as BU
+
 import Network.HTTP (simpleHTTP,getRequest,getResponseBody)
 
 import Network.XmlRpc.Client (Remote,remote)
@@ -33,14 +39,14 @@ import Control.Compose ((~>),result,Unop)
 -- main = getBlogPost 100 >>= putStr
 
 main :: IO ()
-main = getWikiPost "Adding numbers" >>= putStr
+main = getWikiPost "Adding numbers" >>= writeFile "post.html"
 
 {--------------------------------------------------------------------
     Gather content from gitit
 --------------------------------------------------------------------}
 
 getWikiPost :: String -> IO String
-getWikiPost = (result.fmap) (tweakHeaders . trim) $ getHtml . postUrl
+getWikiPost = (result.fmap) adjustWikiContent $ getHtml . postUrl
 
 postsDir :: String
 postsDir = "http://localhost:5002/Posts/"
@@ -59,32 +65,27 @@ tidyUrl = concatMap fixChar
 getHtml :: String -> IO String
 getHtml = simpleHTTP . getRequest >=> getResponseBody
 
+adjustWikiContent :: Unop String
+adjustWikiContent = id
+-- adjustWikiContent = onLines (map tweakLine . trimLines)
+
+onLines :: Unop [String] -> Unop String
+onLines = lines ~> unlines
 
 {--------------------------------------------------------------------
     Change header levels
 --------------------------------------------------------------------}
 
 -- I want h1, h2, ... for my wiki, but h3, h4, ... for my blog.
--- Adjust here.
-
-tweakHeaders :: Unop String
-tweakHeaders = onLines (map tweakLine)
-
+-- Adjust here.  The Pandoc-generated html lines look like "><h2".
 tweakLine :: Unop String
-tweakLine ('>':'<':'h':c:rest) | c `elem` ['1'..'7'] = ('>':'<':'h':succ (succ c):rest)
+tweakLine ('>':'<':'h':c:rest)
+  | c `elem` ['1'..'7'] = ('>':'<':'h':succ (succ c):rest)
 tweakLine line = line
-
--- TODO: combine map tweakLine and trimLines into the same onLines
 
 {--------------------------------------------------------------------
     Trim extra gitit html
 --------------------------------------------------------------------}
-
-trim :: Unop String
-trim = onLines trimLines
-
-onLines :: Unop [String] -> Unop String
-onLines = lines ~> unlines
 
 trimLines :: Unop [String]
 trimLines = dropWhile (not . isInfixOf "<!-- references -->")
