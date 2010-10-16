@@ -15,19 +15,15 @@
 
 module Main where
 
-import Data.List (isInfixOf,group)
+import Data.List (isPrefixOf,isSuffixOf,isInfixOf,group)
 import Data.Char (isAlpha,isDigit,toLower)
 import Control.Applicative ((<$>))
-import Control.Monad ((>=>))
+-- import Control.Monad ((>=>))
 
 import System.IO.Unsafe (unsafePerformIO)
 
--- import qualified Data.ByteString as B
--- import qualified Data.ByteString.Char8 as C8
--- import qualified Data.String.UTF8 as U8
--- import qualified Data.ByteString.UTF8 as BU
-
-import Network.HTTP (simpleHTTP,getRequest,getResponseBody)
+import qualified Data.ByteString.UTF8 as U
+import Network.Curl.Download
 
 import Network.XmlRpc.Client (Remote,remote)
 -- import Network.XmlRpc.Internals (Value(..))
@@ -40,6 +36,9 @@ import Control.Compose ((~>),result,Unop)
 
 main :: IO ()
 main = getWikiPost "Adding numbers" >>= writeFile "post.html"
+
+-- main :: IO ()
+-- main = getHtml (postUrl "Adding numbers") >>= putStrLn
 
 {--------------------------------------------------------------------
     Gather content from gitit
@@ -63,11 +62,15 @@ tidyUrl = concatMap fixChar
    fixChar c   = [c]
 
 getHtml :: String -> IO String
-getHtml = simpleHTTP . getRequest >=> getResponseBody
+getHtml = (fmap.fmap) (either id U.toString) openURI
+
+-- TODO: Handle errors (Left) in openURI
+
+-- getHtml = simpleHTTP . getRequest >=> getResponseBody
 
 adjustWikiContent :: Unop String
-adjustWikiContent = id
--- adjustWikiContent = onLines (map tweakLine . trimLines)
+-- adjustWikiContent = id
+adjustWikiContent = onLines (map tweakLine . trimLines)
 
 onLines :: Unop [String] -> Unop String
 onLines = lines ~> unlines
@@ -79,9 +82,29 @@ onLines = lines ~> unlines
 -- I want h1, h2, ... for my wiki, but h3, h4, ... for my blog.
 -- Adjust here.  The Pandoc-generated html lines look like "><h2".
 tweakLine :: Unop String
-tweakLine ('>':'<':'h':c:rest)
-  | c `elem` ['1'..'7'] = ('>':'<':'h':succ (succ c):rest)
+
+tweakLine line
+  | isPrefixOf "><h" line && (line!!3) `elem` ['1'..'7']
+    = onNth 3 (succ.succ) line
+
+tweakLine line@(_:_)
+  | isSuffixOf "></h" line' && end `elem` ['1'..'7']
+    = line' ++ [succ . succ $ end]
+ where
+   line' = init line
+   end = last line
+
 tweakLine line = line
+
+onNth :: Int -> Unop a -> Unop [a]
+onNth 0 f (x:xs) = f x : xs
+onNth n f (x:xs) = x : onNth (n-1) f xs
+onNth _ _ xs = xs
+
+
+-- tweakLine ('>':'<':'h':c:rest)
+--   | c `elem` ['1'..'7'] = ('>':'<':'h':succ (succ c):rest)
+
 
 {--------------------------------------------------------------------
     Trim extra gitit html

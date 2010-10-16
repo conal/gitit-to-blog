@@ -18,8 +18,8 @@ Hs-Source-Dirs:      .
 Main-is:             Trim.hs
 build-depends:       base<5, text, TypeCompose >=0.8.0
 
-executable: gitit-to-blog
+executable: get-gitit-post
 Hs-Source-Dirs:      .
 Main-is:             Main.hs
-build-depends:       base<5, HTTP
+build-depends:       base<5, download-curl
 
