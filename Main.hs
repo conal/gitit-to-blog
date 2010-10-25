@@ -70,10 +70,13 @@ getHtml = (fmap.fmap) (either id U.toString) openURI
 
 adjustWikiContent :: Unop String
 -- adjustWikiContent = id
-adjustWikiContent = onLines (map tweakLine . trimLines)
+adjustWikiContent = fixSrcLinks . onLines (map tweakHeader . trimLines)
 
 onLines :: Unop [String] -> Unop String
 onLines = lines ~> unlines
+
+fixSrcLinks :: Unop String
+fixSrcLinks = subst "href=\"src/" "href=\"/blog/src/"
 
 {--------------------------------------------------------------------
     Change header levels
@@ -81,20 +84,22 @@ onLines = lines ~> unlines
 
 -- I want h1, h2, ... for my wiki, but h3, h4, ... for my blog.
 -- Adjust here.  The Pandoc-generated html lines look like "><h2".
-tweakLine :: Unop String
+tweakHeader :: Unop String
 
-tweakLine line
+tweakHeader (' ':cs) = ' ' : tweakHeader cs
+
+tweakHeader line
   | isPrefixOf "><h" line && (line!!3) `elem` ['1'..'7']
     = onNth 3 (succ.succ) line
 
-tweakLine line@(_:_)
+tweakHeader line@(_:_)
   | isSuffixOf "></h" line' && end `elem` ['1'..'7']
     = line' ++ [succ . succ $ end]
  where
    line' = init line
    end = last line
 
-tweakLine line = line
+tweakHeader line = line
 
 onNth :: Int -> Unop a -> Unop [a]
 onNth 0 f (x:xs) = f x : xs
@@ -102,19 +107,32 @@ onNth n f (x:xs) = x : onNth (n-1) f xs
 onNth _ _ xs = xs
 
 
--- tweakLine ('>':'<':'h':c:rest)
---   | c `elem` ['1'..'7'] = ('>':'<':'h':succ (succ c):rest)
 
+{--------------------------------------------------------------------
+    String substitution
+--------------------------------------------------------------------}
+
+subst :: String -> String -> String -> String
+subst from to = sub
+ where
+   sub :: String -> String
+   sub "" = ""
+   sub str | from `isPrefixOf` str = to ++ sub (drop n str)
+   sub (c:cs) = c : sub cs
+   n = length from
 
 {--------------------------------------------------------------------
     Trim extra gitit html
 --------------------------------------------------------------------}
 
 trimLines :: Unop [String]
-trimLines = dropWhile (not . isInfixOf "<!-- references -->")
+trimLines = ("<div id=\"post-from-gitit\">" :)
+          . ("<div>" :)
+          . dropWhile (not . isInfixOf "<!-- references -->")
           . tail  
           . takeWhile (not . isInfixOf "<div id=\"footer\">")
 
+-- The extra divs at the start are to balance two extras at the end.
 
 {--------------------------------------------------------------------
     Send to my blog
