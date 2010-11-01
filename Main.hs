@@ -11,6 +11,15 @@
 -- Stability   :  experimental
 -- 
 -- Transfer gitit content to blog
+-- This version just converts to WordPress-friendly HTML and has some
+-- stubs for transfering content via xml-rpc.
+-- 
+-- Bug: leaves behind the pointers back up to the TOC.
+-- 
+-- TODO: rewrite to work directly on markdown rather than the
+-- gitit-generated html.  Will make the implementation simpler and more
+-- robust.  I'll have to find out how to rewrite on the Pandoc rep.  Gitit
+-- will have some helpful clues.
 ----------------------------------------------------------------------
 
 module Main where
