@@ -13,13 +13,24 @@ License-File:        COPYING
 Stability:           experimental
 build-type:          Simple
 
-executable: trim-gitit-post
-Hs-Source-Dirs:      .
-Main-is:             Trim.hs
-build-depends:       base<5, text, TypeCompose >=0.8.0
+-- executable: trim-gitit-post
+-- Hs-Source-Dirs:      .
+-- Main-is:             Trim.hs
+-- build-depends:       base<5, text, TypeCompose >=0.8.0, haxr, utf8-string
 
-executable: get-gitit-post
-Hs-Source-Dirs:      .
-Main-is:             Main.hs
-build-depends:       base<5, download-curl
+-- executable: get-gitit-post
+-- Hs-Source-Dirs:      .
+-- Main-is:             Main.hs
+-- build-depends:       base<5, download-curl, TypeCompose, haxr
 
+-- trim-gitit-post and get-gitit-post both lead to version conflicts:
+-- 
+--   cabal: dependencies conflict: fix-symbols-gitit-0.0.3 requires HaXml ==1.13.3
+--   however
+--   HaXml-1.13.3 was excluded because haxr-3000.7 requires HaXml ==1.20.*
+
+
+executable: blogify
+Hs-Source-Dirs:      .
+Main-is:             Blogify.hs
+build-depends:       base<5, pandoc, fix-symbols-gitit
