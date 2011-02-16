@@ -1,7 +1,7 @@
 Name:                gitit-to-blog
 Version:             0.1.0
 Cabal-Version:       >= 1.2
-Synopsis:            gitit plugin: convert a gitit-friendly markdown page to HTML with various transformations
+Synopsis:            convert a gitit-friendly markdown page to HTML with various transformations
 Category:            utility
 Description:
   Convert a gitit-friendly markdown page to HTML, including various transformations
