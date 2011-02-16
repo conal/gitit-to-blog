@@ -5,6 +5,7 @@ Synopsis:            gitit plugin: convert a gitit-friendly markdown page for my
 Category:            utility
 Description:
   Convert a gitit-friendly markdown page for my WordPress blog
+  .
   Also has some pieces for transfering content from a gitit wiki to a blog,
   but in disarray.
 Author:              Conal Elliott
