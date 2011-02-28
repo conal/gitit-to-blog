@@ -1,5 +1,5 @@
 Name:                gitit-to-blog
-Version:             0.1.0
+Version:             0.1.1
 Cabal-Version:       >= 1.2
 Synopsis:            convert a gitit-friendly markdown page to HTML with various transformations
 Category:            utility
@@ -32,8 +32,12 @@ build-type:          Simple
 --   however
 --   HaXml-1.13.3 was excluded because haxr-3000.7 requires HaXml ==1.20.*
 
+Data-Files:
+                 data/MathMLinHTML.js
+
 
 executable: blogify
 Hs-Source-Dirs:      .
 Main-is:             Blogify.hs
-build-depends:       base<5, pandoc, fix-symbols-gitit
+Other-Modules:       Paths_gitit_to_blog
+build-depends:       base<5, pandoc, fix-symbols-gitit >= 0.1.1
