@@ -20,7 +20,7 @@
 module Main (main) where
 
 -- import Data.Char (isSpace)
-import Data.List (isPrefixOf,isSuffixOf)
+import Data.List (isPrefixOf,isSuffixOf,isInfixOf)
 
 import Text.Pandoc
 
@@ -91,13 +91,16 @@ writeDoc :: Pandoc -> String
 -- writeDoc = writeHtmlString defaultWriterOptions
 writeDoc = writeHtmlString (defaultWriterOptions { writerHTMLMathMethod = MathML Nothing })
 
-rewrite :: Unop String
-rewrite = writeDoc . transformDoc . readDoc . onLines dropMeta
+rewrite :: String -> Unop String
+rewrite mathJS = mbMath mathJS . writeDoc . transformDoc . readDoc . onLines dropMeta
+
+mbMath :: String -> Unop String
+mbMath js html | isInfixOf "<math " html = wrapJS js ++ html
+               | otherwise               = html
 
 wrapJS :: Unop String
 wrapJS = ("<script type=\"text/javascript\">" ++) . (++ "</script>")
 
 main :: IO ()
-main = do interact rewrite
-          getDataFileName "data/MathMLinHTML.js" >>= readFile
-            >>= putStrLn . wrapJS
+main = getDataFileName "data/MathMLinHTML.js" >>= readFile >>= interact . rewrite
+
