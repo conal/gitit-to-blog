@@ -19,17 +19,19 @@
 
 module Main (main) where
 
--- import Data.Char (isSpace)
 import Data.List (isPrefixOf,isSuffixOf,isInfixOf)
 
 import Text.Pandoc
 
 import Paths_gitit_to_blog (getDataFileName)
 
-import qualified Network.Gitit.Plugin.FixSymbols as Sym
+import qualified Network.Gitit.Plugin.FixSymbols     as Sym
+import qualified Network.Gitit.Plugin.BirdtrackShift as Bird
 
 type Unop a = a -> a
 
+-- * Indent lines starting with "<" unless followed by space.
+--   Distinguishes inverse bird tracks from HTML.
 -- * Remove gitit page meta-data if present (before parsing)
 -- * Remove "Introduction" section header
 -- * Remove "<!-- references -->"
@@ -73,16 +75,6 @@ dropMeta :: Unop [String]
 dropMeta ("---":rest) = tail $ dropWhile (/= "...") rest
 dropMeta ss = ss
 
-{-
-
--- Lines that start with HTML tags are interpreted as Haskell code, so
--- indent by one space. For instance, "<div>" --> " <div>".
-indentTag :: Unop String
-indentTag s@('<':c:_) | not (isSpace c) = ' ' : s
-indentTag s                             = s
-
--}
-
 readDoc :: String -> Pandoc
 readDoc = readMarkdown (defaultParserState {stateLiterateHaskell = True})
 
@@ -92,10 +84,15 @@ writeDoc :: Pandoc -> String
 writeDoc = writeHtmlString (defaultWriterOptions { writerHTMLMathMethod = MathML Nothing })
 
 rewrite :: String -> Unop String
-rewrite mathJS = mbMath mathJS . writeDoc . transformDoc . readDoc . onLines dropMeta
+rewrite mathJS = mbMath mathJS
+               . writeDoc
+               . transformDoc
+               . readDoc
+               . onLines dropMeta
+               . Bird.process
 
 mbMath :: String -> Unop String
-mbMath js html | isInfixOf "<math " html = wrapJS js ++ html
+mbMath js html | isInfixOf "<math " html = html ++ wrapJS js
                | otherwise               = html
 
 wrapJS :: Unop String
