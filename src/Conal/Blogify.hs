@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -Wall #-}
 ----------------------------------------------------------------------
 -- |
--- Module      :  Blogify
+-- Module      :  Conal.Blogify
 -- Copyright   :  (c) Conal Elliott 2010
 -- License     :  BSD3
 -- 
@@ -17,18 +17,18 @@
 -- Test with @blogify < test.md > test.md.html@
 ----------------------------------------------------------------------
 
-module Main (main) where
+module Conal.Blogify (transformDoc,rewrite,trimBlankRefs) where
 
+import Data.Monoid (mempty)
 import Data.Maybe (fromMaybe)
-import Data.List (isPrefixOf,isSuffixOf,isInfixOf)
+import Data.List (isPrefixOf,isSuffixOf)
 
 import Text.Pandoc
-
-import Paths_gitit_to_blog (getDataFileName)
 
 import qualified Network.Gitit.Plugin.FixSymbols     as Sym
 import qualified Network.Gitit.Plugin.BirdtrackShift as Bird
 import qualified Network.Gitit.Plugin.Comment        as Com
+import qualified Network.Gitit.Plugin.Ordinal        as Ord
 
 -- Steps:
 -- 
@@ -43,6 +43,7 @@ import qualified Network.Gitit.Plugin.Comment        as Com
 -- * "<!-- references -->" and adjacent newlines from start of doc.
 
 
+-- | Unary transformation
 type Unop a = a -> a
 
 tweakBlock :: Unop Block
@@ -50,18 +51,26 @@ tweakBlock (RawBlock "html" "<!-- references -->") = Null
 tweakBlock (Header 1 [Str "Introduction"]) = Null
 tweakBlock (Header n xs) = Header (n+2) xs
 tweakBlock (RawBlock "html" s) | isPrefixOf "<!--[" s && isSuffixOf "]-->" s = Null
-tweakBlock x = (Com.fixBlock . Sym.fixBlock) x
+tweakBlock x = (Com.fixBlock . Sym.fixBlock mempty) x
 
+-- TODO: extract subst-map from metadata and pass to Sym.fixBlock above
+-- and Sym.fixInline below.
 
 -- Link [Str foo] ("src/xxx",title) --> Link [Str foo] ("blog/src/xxx",title)
 
-tweakInline :: Unop Inline
+tweakInline :: Inline -> [Inline]
 tweakInline (Link inlines (url,title)) | isPrefixOf "src/" url =
-  Link inlines ("/blog/" ++ url,title)
-tweakInline x = (Com.fixInline . Sym.fixInline) x
+  [Link inlines ("/blog/" ++ url,title)]
+tweakInline x = (Ord.fixInline . Com.fixInline . Sym.fixInline mempty) x
+
+-- Note type type differences:
+-- 
+-- Com.fixInline :: Inline -> Inline
+-- Sym.fixInline :: Subst -> Inline -> Inline
+-- Ord.fixInline :: Inline -> [Inline]
 
 transformDoc :: Unop Pandoc
-transformDoc = bottomUp tweakInline . bottomUp tweakBlock
+transformDoc = bottomUp (concatMap tweakInline) . bottomUp tweakBlock
 
 {- gitit meta-data header example:
 ---
@@ -91,8 +100,11 @@ dropPrefix' (a:as) (b:bs) | a == b    = dropPrefix' as bs
 
 trimNewlines :: Unop String
 trimNewlines (c:cs) | c `elem` nlChars = trimNewlines cs
- where nlChars = "\n\r"
-trimNewlines s                       = s
+trimNewlines s                         = s
+
+nlChars :: String
+nlChars = "\n\r"
+
 
 trimBlankRefs :: Unop String
 trimBlankRefs = trimNewlines
@@ -103,28 +115,21 @@ readDoc :: String -> Pandoc
 readDoc = readMarkdown (defaultParserState {stateLiterateHaskell = True})
 
 writeDoc :: Pandoc -> String
--- writeDoc = writeMarkdown defaultWriterOptions
--- writeDoc = writeHtmlString defaultWriterOptions
 writeDoc = writeHtmlString (defaultWriterOptions { writerHTMLMathMethod = MathML Nothing })
 
-rewrite :: String -> Unop String
-rewrite mathJS = mbMath mathJS
-               . trimBlankRefs
-               . writeDoc
-               . transformDoc
-               . readDoc
-               . onLines dropMeta
-               . Bird.process
+-- There is another critically important step, which is to include the
+-- contents of data/MathMLinHTML.js from Pandoc in my blog.
+-- 
+--   <script type="text/javascript" src=".../MathMLinHTML.js"></script>
 
-mbMath :: String -> Unop String
-mbMath js html | isInfixOf "<math " html = html ++ wrapJS js
-               | otherwise               = html
+rewrite :: Unop String
+rewrite = trimBlankRefs
+        . writeDoc
+        . transformDoc
+        . readDoc
+        . onLines dropMeta
+        . Bird.process
 
--- <script language="javascript" type="text/javascript">
-
-wrapJS :: Unop String
-wrapJS = ("<script language=\"javascript\" type=\"text/javascript\">" ++) . (++ "</script>")
-
-main :: IO ()
-main = getDataFileName "data/MathMLinHTML.js" >>= readFile >>= interact . rewrite
+-- main :: IO ()
+-- main = interact rewrite
 

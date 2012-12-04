@@ -36,8 +36,13 @@ Data-Files:
                  data/MathMLinHTML.js
 
 
-executable: blogify
-Hs-Source-Dirs:      .
-Main-is:             Blogify.hs
-Other-Modules:       Paths_gitit_to_blog
-build-depends:       base<5, pandoc, fix-symbols-gitit >= 0.1.1, gitit-birdtrack-shift, gitit-comment
+Library
+  Hs-Source-Dirs:      src
+  Exposed-modules:     Conal.Blogify
+  build-depends:       base<5, pandoc, fix-symbols-gitit >= 0.1.1, gitit-birdtrack-shift, gitit-comment, ordinal-gitit-plugin
+
+Executable blogify
+  Hs-Source-Dirs:      src
+  Main-is:             Main.hs
+  Other-Modules:       Paths_gitit_to_blog
+  build-depends:       base<5, pandoc, fix-symbols-gitit >= 0.1.1, gitit-birdtrack-shift, gitit-comment, ordinal-gitit-plugin
