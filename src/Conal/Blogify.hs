@@ -17,11 +17,12 @@
 -- Test with @blogify < test.md > test.md.html@
 ----------------------------------------------------------------------
 
-module Conal.Blogify (transformDoc,rewrite,trimBlankRefs) where
+module Conal.Blogify (Unop,transformDoc,rewrite,trimBlankRefs) where
 
 import Data.Monoid (mempty)
 import Data.Maybe (fromMaybe)
 import Data.List (isPrefixOf,isSuffixOf)
+import Data.Set (insert)
 
 import Text.Pandoc
 
@@ -48,8 +49,8 @@ type Unop a = a -> a
 
 tweakBlock :: Unop Block
 tweakBlock (RawBlock "html" "<!-- references -->") = Null
-tweakBlock (Header 1 [Str "Introduction"]) = Null
-tweakBlock (Header n xs) = Header (n+2) xs
+tweakBlock (Header 1 _ [Str "Introduction"]) = Null
+tweakBlock (Header n at xs) = Header (n+2) at xs
 tweakBlock (RawBlock "html" s) | isPrefixOf "<!--[" s && isSuffixOf "]-->" s = Null
 tweakBlock x = (Com.fixBlock . Sym.fixBlock mempty) x
 
@@ -111,16 +112,33 @@ trimBlankRefs = trimNewlines
               . dropPrefix "<!-- references -->"
               . trimNewlines  
 
+readerOptions :: ReaderOptions
+readerOptions = def
+  { readerExtensions = exts
+  , readerSmart      = True
+  , readerOldDashes  = True         -- double hyphen for emdash
+  }
+ where
+   exts = insert Ext_literate_haskell (readerExtensions def)
+
 readDoc :: String -> Pandoc
-readDoc = readMarkdown (defaultParserState {stateLiterateHaskell = True})
+readDoc = readMarkdown readerOptions
+
+htmlMath :: HTMLMathMethod
+htmlMath = MathML Nothing -- LaTeXMathML Nothing
+
+-- MathML & LaTeXMathML work great in Firefox but not Safari or Chrome.
+-- I could try JSMath again
 
 writeDoc :: Pandoc -> String
-writeDoc = writeHtmlString (defaultWriterOptions { writerHTMLMathMethod = MathML Nothing })
+writeDoc = writeHtmlString (def { writerHTMLMathMethod = htmlMath })
 
 -- There is another critically important step, which is to include the
 -- contents of data/MathMLinHTML.js from Pandoc in my blog.
 -- 
 --   <script type="text/javascript" src=".../MathMLinHTML.js"></script>
+-- 
+-- Instead, for now, I copy from the browser.
 
 rewrite :: Unop String
 rewrite = trimBlankRefs
