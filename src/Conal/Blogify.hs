@@ -1,5 +1,10 @@
 -- {-# LANGUAGE #-}
+{-# LANGUAGE NoMonomorphismRestriction, Rank2Types #-}  -- experimental
 {-# OPTIONS_GHC -Wall #-}
+
+{-# OPTIONS_GHC -fno-warn-unused-imports #-} -- TEMP
+{-# OPTIONS_GHC -fno-warn-unused-binds   #-} -- TEMP
+
 ----------------------------------------------------------------------
 -- |
 -- Module      :  Conal.Blogify
@@ -20,9 +25,13 @@
 module Conal.Blogify (Unop,transformDoc,rewrite,trimBlankRefs) where
 
 import Data.Monoid (mempty)
+import Control.Arrow (first,second,(***))
 import Data.Maybe (fromMaybe)
 import Data.List (isPrefixOf,isSuffixOf)
 import Data.Set (insert)
+import Data.Map (Map)
+import qualified Data.Map as Map
+import Data.Data
 
 import Text.Pandoc
 
@@ -47,31 +56,31 @@ import qualified Network.Gitit.Plugin.Ordinal        as Ord
 -- | Unary transformation
 type Unop a = a -> a
 
-tweakBlock :: Unop Block
-tweakBlock (RawBlock "html" "<!-- references -->") = Null
-tweakBlock (Header 1 _ [Str "Introduction"]) = Null
-tweakBlock (Header n at xs) = Header (n+2) at xs
-tweakBlock (RawBlock "html" s) | isPrefixOf "<!--[" s && isSuffixOf "]-->" s = Null
-tweakBlock x = (Com.fixBlock . Sym.fixBlock mempty) x
-
--- TODO: extract subst-map from metadata and pass to Sym.fixBlock above
--- and Sym.fixInline below.
-
--- Link [Str foo] ("src/xxx",title) --> Link [Str foo] ("blog/src/xxx",title)
-
-tweakInline :: Inline -> [Inline]
-tweakInline (Link inlines (url,title)) | isPrefixOf "src/" url =
-  [Link inlines ("/blog/" ++ url,title)]
-tweakInline x = (Ord.fixInline . Com.fixInline . Sym.fixInline mempty) x
+transformDoc :: Sym.Subst -> Unop Pandoc
+transformDoc subst =
+  bottomUp (concatMap Ord.fixInline) . bottomUp tweakInline . bottomUp tweakBlock
+ where
+   tweakBlock :: Unop Block
+   tweakBlock (RawBlock "html" "<!-- references -->") = Null
+   tweakBlock (Header 1 _ [Str "Introduction"]) = Null
+   tweakBlock (Header n at xs) = Header (n+2) at xs
+   tweakBlock (RawBlock "html" s) | isPrefixOf "<!--[" s && isSuffixOf "]-->" s = Null
+   tweakBlock x = (Com.fixBlock . Sym.fixBlock subst) x
+   -- Link [Str foo] ("src/xxx",title) --> Link [Str foo] ("blog/src/xxx",title)
+   tweakInline :: Unop Inline
+   tweakInline (Link inlines (url,title)) | isPrefixOf "src/" url =
+     Link inlines ("/blog/" ++ url,title)
+   tweakInline x = (Com.fixInline . Sym.fixInline subst) x
 
 -- Note type type differences:
 -- 
--- Com.fixInline :: Inline -> Inline
--- Sym.fixInline :: Subst -> Inline -> Inline
--- Ord.fixInline :: Inline -> [Inline]
-
-transformDoc :: Unop Pandoc
-transformDoc = bottomUp (concatMap tweakInline) . bottomUp tweakBlock
+--   Com.fixInline :: Inline -> Inline
+--   Sym.fixInline :: Subst -> Inline -> Inline
+--   Ord.fixInline :: Inline -> [Inline]
+-- 
+-- I used to compose Ord.fixInline with the others, wrapping the the composition
+-- in a bottomUp.concatMap. However, doing so messes up Sym in a way I don't
+-- understand.
 
 {- gitit meta-data header example:
 ---
@@ -87,6 +96,23 @@ onLines h = unlines . h . lines
 dropMeta :: Unop [String]
 dropMeta ("---":rest) = tail $ dropWhile (/= "...") rest
 dropMeta ss = ss
+
+extractSubst :: [String] -> (Sym.Subst,[String])
+extractSubst =
+    first (Map.fromList . read . fromMaybe "[]" . Map.lookup "substMap")
+  . captureMeta
+
+captureMeta :: [String] -> (Map String String, [String])
+captureMeta ("---":rest) = (toMetaMap *** tail) $ span (/= "...") rest
+captureMeta ss = (mempty,ss)
+
+toMetaMap :: [String] -> Map String String
+toMetaMap = Map.fromList . map parseMetaLine
+
+parseMetaLine :: String -> (String,String)
+parseMetaLine str = (key,val)
+ where
+   (key,':':val) = break (== ':') str  -- WARNING: may fail
 
 -- Drop given prefix or yield original if no match.
 dropPrefix :: Eq a => [a] -> [a] -> [a]
@@ -141,13 +167,18 @@ writeDoc = writeHtmlString (def { writerHTMLMathMethod = htmlMath })
 -- Instead, for now, I copy from the browser.
 
 rewrite :: Unop String
+
+-- rewrite = trimBlankRefs
+--         . writeDoc
+--         . transformDoc mempty
+--         . readDoc
+--         . onLines dropMeta
+--         . Bird.process
+
 rewrite = trimBlankRefs
         . writeDoc
-        . transformDoc
-        . readDoc
-        . onLines dropMeta
+        . uncurry transformDoc
+        . second (readDoc . unlines)
+        . extractSubst
+        . lines
         . Bird.process
-
--- main :: IO ()
--- main = interact rewrite
-
