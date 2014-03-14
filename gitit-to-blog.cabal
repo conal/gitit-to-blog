@@ -1,5 +1,5 @@
 Name:                gitit-to-blog
-Version:             0.1.4
+Version:             0.1.5
 Synopsis:            convert a gitit-friendly markdown page to HTML with various transformations
 Category:            utility
 Cabal-Version:       >= 1.6
@@ -39,7 +39,7 @@ source-repository head
 Library
   Hs-Source-Dirs:      src
   Exposed-modules:     Conal.Blogify
-  build-depends:       base<5, containers, pandoc >= 1.11.1, fix-symbols-gitit >= 0.1.1, gitit-birdtrack-shift, gitit-comment, ordinal-gitit-plugin
+  build-depends:       base<5, containers, pandoc >= 1.11.1, fix-symbols-gitit >= 0.1.7, gitit-birdtrack-shift, gitit-comment, ordinal-gitit-plugin
 
 Executable blogify
   Hs-Source-Dirs:      src
