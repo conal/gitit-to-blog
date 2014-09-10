@@ -1,5 +1,4 @@
--- {-# LANGUAGE #-}
-{-# LANGUAGE NoMonomorphismRestriction, Rank2Types #-}  -- experimental
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wall #-}
 
 {-# OPTIONS_GHC -fno-warn-unused-imports #-} -- TEMP
