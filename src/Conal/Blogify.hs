@@ -156,7 +156,10 @@ htmlMath = MathML Nothing -- LaTeXMathML Nothing
 -- I could try JSMath again
 
 writeDoc :: Pandoc -> String
-writeDoc = writeHtmlString (def { writerHTMLMathMethod = htmlMath })
+writeDoc = writeHtmlString $
+            def { writerHTMLMathMethod = htmlMath
+                , writerHighlight = True
+                }
 
 -- There is another critically important step, which is to include the
 -- contents of data/MathMLinHTML.js from Pandoc in my blog.
