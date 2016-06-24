@@ -67,8 +67,8 @@ transformDoc subst =
    tweakBlock x = (Com.fixBlock . Sym.fixBlock subst) x
    -- Link [Str foo] ("src/xxx",title) --> Link [Str foo] ("blog/src/xxx",title)
    tweakInline :: Unop Inline
-   tweakInline (Link inlines (url,title)) | isPrefixOf "src/" url =
-     Link inlines ("/blog/" ++ url,title)
+   tweakInline (Link attr inlines (url,title)) | isPrefixOf "src/" url =
+     Link attr inlines ("/blog/" ++ url,title)
    tweakInline x = (Com.fixInline . Sym.fixInline subst) x
 
 -- Note type type differences:
@@ -147,7 +147,8 @@ readerOptions = def
    exts = insert Ext_literate_haskell (readerExtensions def)
 
 readDoc :: String -> Pandoc
-readDoc = readMarkdown readerOptions
+readDoc = either (error . show) id .
+          readMarkdown readerOptions
 
 htmlMath :: HTMLMathMethod
 htmlMath = MathML Nothing -- LaTeXMathML Nothing
