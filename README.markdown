@@ -4,7 +4,7 @@ It uses the project fix-symbols-gitit for tidying up symbols.
 * Remove gitit page meta-data if present (before parsing)
 * Remove "Introduction" section header
 * Remove "`<!-- references -->`"
-* Deepen all headers by two levels
+* Deepen all headers by two levels (temporarily off)
 * Remove comments surrounded by `<!--[ ... ]-->`
 * Fix source links: "src/" --> "/blog/src/"
 * Rewrite some code symbols (using `fix-symbols-gitit`)
