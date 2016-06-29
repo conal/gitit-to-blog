@@ -38,6 +38,7 @@ import qualified Network.Gitit.Plugin.FixSymbols     as Sym
 import qualified Network.Gitit.Plugin.BirdtrackShift as Bird
 import qualified Network.Gitit.Plugin.Comment        as Com
 import qualified Network.Gitit.Plugin.Ordinal        as Ord
+import qualified Network.Gitit.Plugin.ReviveATX      as Atx
 
 -- Steps:
 -- 
@@ -62,9 +63,9 @@ transformDoc subst =
    tweakBlock :: Unop Block
    tweakBlock (RawBlock "html" "<!-- references -->") = Null
    tweakBlock (Header 1 _ [Str "Introduction"]) = Null
-   tweakBlock (Header n at xs) = Header (n+2) at xs
+   -- tweakBlock (Header n at xs) = Header (n+2) at xs
    tweakBlock (RawBlock "html" s) | isPrefixOf "<!--[" s && isSuffixOf "]-->" s = Null
-   tweakBlock x = (Com.fixBlock . Sym.fixBlock subst) x
+   tweakBlock x = (Atx.fixBlock . Com.fixBlock . Sym.fixBlock subst) x
    -- Link [Str foo] ("src/xxx",title) --> Link [Str foo] ("blog/src/xxx",title)
    tweakInline :: Unop Inline
    tweakInline (Link attr inlines (url,title)) | isPrefixOf "src/" url =
@@ -141,13 +142,13 @@ readerOptions :: ReaderOptions
 readerOptions = def
   { readerExtensions = exts
   , readerSmart      = True
-  , readerOldDashes  = True         -- double hyphen for emdash
+  -- , readerOldDashes  = True         -- double hyphen for emdash
   }
  where
    exts = insert Ext_literate_haskell (readerExtensions def)
 
 readDoc :: String -> Pandoc
-readDoc = either (error . show) id .
+readDoc = either (error . ("readDoc: readMarkdown failed: " ++) . show) id .
           readMarkdown readerOptions
 
 htmlMath :: HTMLMathMethod
@@ -159,7 +160,9 @@ htmlMath = MathML Nothing -- LaTeXMathML Nothing
 writeDoc :: Pandoc -> String
 writeDoc = writeHtmlString $
             def { writerHTMLMathMethod = htmlMath
-                , writerHighlight = True
+                , writerHighlight      = True
+--                 , writerNumberSections  = True
+--                 , writerTableOfContents = True   -- Doesn't.
                 }
 
 -- There is another critically important step, which is to include the
