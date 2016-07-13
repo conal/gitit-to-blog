@@ -1,3 +1,4 @@
+{-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wall #-}
 
@@ -25,7 +26,7 @@ module Conal.Blogify (Unop,transformDoc,rewrite,trimBlankRefs) where
 
 import Data.Monoid (mempty)
 import Control.Arrow (first,second,(***))
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe,mapMaybe)
 import Data.List (isPrefixOf,isSuffixOf)
 import Data.Set (insert)
 import Data.Map (Map)
@@ -107,12 +108,11 @@ captureMeta ("---":rest) = (toMetaMap *** tail) $ span (/= "...") rest
 captureMeta ss = (mempty,ss)
 
 toMetaMap :: [String] -> Map String String
-toMetaMap = Map.fromList . map parseMetaLine
+toMetaMap = Map.fromList . mapMaybe parseMetaLine
 
-parseMetaLine :: String -> (String,String)
-parseMetaLine str = (key,val)
- where
-   (key,':':val) = break (== ':') str  -- WARNING: may fail
+parseMetaLine :: String -> Maybe (String,String)
+parseMetaLine str | (key,':':val) <- break (== ':') str = Just (key,val)
+                  | otherwise = Nothing
 
 -- Drop given prefix or yield original if no match.
 dropPrefix :: Eq a => [a] -> [a] -> [a]
