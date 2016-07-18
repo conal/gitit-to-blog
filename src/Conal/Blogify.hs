@@ -1,5 +1,6 @@
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -Wall #-}
 
 {-# OPTIONS_GHC -fno-warn-unused-imports #-} -- TEMP
@@ -59,7 +60,9 @@ type Unop a = a -> a
 
 transformDoc :: Sym.Subst -> Unop Pandoc
 transformDoc subst =
-  bottomUp (concatMap Ord.fixInline) . bottomUp tweakInline . bottomUp tweakBlock
+    bottomUp (concatMap Ord.fixInline)
+  . bottomUp tweakInline . bottomUp tweakBlock
+  . dropPrivateBlocks
  where
    tweakBlock :: Unop Block
    tweakBlock (RawBlock "html" "<!-- references -->") = Null
@@ -72,6 +75,29 @@ transformDoc subst =
    tweakInline (Link attr inlines (url,title)) | isPrefixOf "src/" url =
      Link attr inlines ("/blog/" ++ url,title)
    tweakInline x = (Com.fixInline . Sym.fixInline subst) x
+
+-- When we see a header block with "private" class, drop it and all
+-- following blocks until we see another header at the same level or
+-- lower. For now, doesn't work with ATX-style blocks, because my
+-- ReviveATX hack isn't smart enough. (It's a post-parse hack and the
+-- "{.private}" attribute gets misparsed.)
+dropPrivateBlocks :: Unop Pandoc
+dropPrivateBlocks (Pandoc meta blocks) = Pandoc meta (drops blocks)
+ where
+   drops :: Unop [Block]
+   drops (Header n (_,classes,_) _ : rest)
+     | "private" `elem` classes = drops (dropWhile (not . headerAtMost n) rest)
+   drops (block : rest) = block : drops rest
+   drops [] = []
+
+headerAtMost :: Int -> Block -> Bool
+headerAtMost n (Header m _ _) = m <= n
+headerAtMost _ _              = False
+
+-- The attributes aren't appearing. I guess I need to enable Ext_header_attributes
+
+-- [Header 2 ("journaling-and-sharing",["private"],[]) [Str "Journaling",Space,Str "and",Space,Str "sharing"]]
+
 
 -- Note type type differences:
 -- 
@@ -145,7 +171,9 @@ readerOptions = def
   -- , readerOldDashes  = True         -- double hyphen for emdash
   }
  where
-   exts = insert Ext_literate_haskell (readerExtensions def)
+   exts = -- insert Ext_header_attributes $
+          insert Ext_literate_haskell $
+          readerExtensions def
 
 readDoc :: String -> Pandoc
 readDoc = either (error . ("readDoc: readMarkdown failed: " ++) . show) id .
@@ -162,7 +190,7 @@ writeDoc = writeHtmlString $
             def { writerHTMLMathMethod = htmlMath
                 , writerHighlight      = True
 --                 , writerNumberSections  = True
---                 , writerTableOfContents = True   -- Doesn't.
+                , writerTableOfContents = True   -- Doesn't.
                 }
 
 -- There is another critically important step, which is to include the
@@ -186,5 +214,13 @@ rewrite = trimBlankRefs
         . uncurry transformDoc
         . second (readDoc . unlines)
         . extractSubst
+        . map fixAtx
         . lines
         . Bird.process
+
+fixAtx :: Unop String
+fixAtx str | n > 0 = replicate n '=' ++ rest
+           | otherwise = str
+ where
+   (hashes,rest) = span (== '#') str
+   n = length hashes
