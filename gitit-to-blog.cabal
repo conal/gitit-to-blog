@@ -39,7 +39,7 @@ source-repository head
 Library
   Hs-Source-Dirs:      src
   Exposed-modules:     Conal.Blogify
-  build-depends:       base<5, containers, fix-symbols-gitit >= 0.1.7, gitit-atx-plugin, gitit-birdtrack-shift, gitit-comment, ordinal-gitit-plugin, pandoc >= 1.11.1
+  build-depends:       base<5, containers, fix-symbols-gitit >= 0.1.8, gitit-atx-plugin, gitit-birdtrack-shift, gitit-comment, ordinal-gitit-plugin, pandoc >= 1.11.1
 
 Executable blogify
   Hs-Source-Dirs:      src
