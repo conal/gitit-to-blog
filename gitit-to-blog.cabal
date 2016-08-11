@@ -38,8 +38,7 @@ source-repository head
 
 Library
   Hs-Source-Dirs:      src
-  Exposed-modules:     Conal.Blogify
-                       Network.Gitit.Plugin.FixSymbols
+  Exposed-modules:     Network.Gitit.Plugin.FixSymbols
                        Network.Gitit.Plugin.ReviveATX
                        Network.Gitit.Plugin.BirdtrackShift
                        Network.Gitit.Plugin.Comment
