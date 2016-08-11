@@ -1,7 +1,7 @@
 Name:                gitit-to-blog
-Version:             0.1.5
-Synopsis:            convert a gitit-friendly markdown page to HTML with various transformations
-Category:            utility
+Version:             0.2.0
+Synopsis:            Convert a gitit-friendly markdown page to HTML with various transformations
+Category:            text
 Cabal-Version:       >= 1.6
 Description:
   Convert a gitit-friendly markdown page to HTML, including various transformations
@@ -10,7 +10,7 @@ Description:
   but in disarray.
 Author:              Conal Elliott
 Maintainer:          conal@conal.net
-Copyright:           (c) 2010-2013 by Conal Elliott
+Copyright:           (c) 2010-2016 by Conal Elliott
 License:             BSD3
 License-File:        COPYING
 Stability:           experimental
@@ -19,22 +19,6 @@ build-type:          Simple
 source-repository head
   type:     git
   location: git://github.com/conal/gitit-to-blog.git
-
--- executable: trim-gitit-post
--- Hs-Source-Dirs:      .
--- Main-is:             Trim.hs
--- build-depends:       base<5, text, TypeCompose >=0.8.0, haxr, utf8-string
-
--- executable: get-gitit-post
--- Hs-Source-Dirs:      .
--- Main-is:             Main.hs
--- build-depends:       base<5, download-curl, TypeCompose, haxr
-
--- trim-gitit-post and get-gitit-post both lead to version conflicts:
--- 
---   cabal: dependencies conflict: fix-symbols-gitit-0.0.3 requires HaXml ==1.13.3
---   however
---   HaXml-1.13.3 was excluded because haxr-3000.7 requires HaXml ==1.20.*
 
 Library
   Hs-Source-Dirs:      src
@@ -47,13 +31,10 @@ Library
 
   build-depends:       base<5, containers, mtl
                      , pandoc >= 1.11.1, gitit >= 0.12.1.1
---                     , gitit-atx-plugin, gitit-birdtrack-shift, gitit-comment, ordinal-gitit-plugin
 
 Executable blogify
   Hs-Source-Dirs:      src
   Main-is:             Main.hs
   Other-Modules:       Paths_gitit_to_blog
-  build-depends:       base<5, containers, fix-symbols-gitit >= 0.1.1, gitit >= 0.12.1.1, gitit-atx-plugin, gitit-birdtrack-shift, gitit-comment, ordinal-gitit-plugin, pandoc >= 1.11.1
-
--- Data-Files:
---                  data/MathMLinHTML.js
+  build-depends:       base<5, containers
+                     , gitit >= 0.12.1.1, pandoc >= 1.11.1
