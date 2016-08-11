@@ -39,13 +39,22 @@ source-repository head
 Library
   Hs-Source-Dirs:      src
   Exposed-modules:     Conal.Blogify
-  build-depends:       base<5, containers, fix-symbols-gitit >= 0.1.8, gitit-atx-plugin, gitit-birdtrack-shift, gitit-comment, ordinal-gitit-plugin, pandoc >= 1.11.1
+                       Network.Gitit.Plugin.FixSymbols
+                       Network.Gitit.Plugin.ReviveATX
+                       Network.Gitit.Plugin.BirdtrackShift
+                       Network.Gitit.Plugin.Comment
+                       Network.Gitit.Plugin.Ordinal
+                       Network.Gitit.Plugin.ListNoPara
+
+  build-depends:       base<5, containers, mtl
+                     , pandoc >= 1.11.1, gitit >= 0.12.1.1
+--                     , gitit-atx-plugin, gitit-birdtrack-shift, gitit-comment, ordinal-gitit-plugin
 
 Executable blogify
   Hs-Source-Dirs:      src
   Main-is:             Main.hs
   Other-Modules:       Paths_gitit_to_blog
-  build-depends:       base<5, containers, fix-symbols-gitit >= 0.1.1, gitit-atx-plugin, gitit-birdtrack-shift, gitit-comment, ordinal-gitit-plugin, pandoc >= 1.11.1
+  build-depends:       base<5, containers, fix-symbols-gitit >= 0.1.1, gitit >= 0.12.1.1, gitit-atx-plugin, gitit-birdtrack-shift, gitit-comment, ordinal-gitit-plugin, pandoc >= 1.11.1
 
 -- Data-Files:
 --                  data/MathMLinHTML.js
