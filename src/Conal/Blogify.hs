@@ -39,6 +39,7 @@ import qualified Network.Gitit.Plugin.BirdtrackShift as Bird
 import qualified Network.Gitit.Plugin.Comment        as Com
 import qualified Network.Gitit.Plugin.Ordinal        as Ord
 import qualified Network.Gitit.Plugin.ReviveATX      as Atx
+import qualified Network.Gitit.Plugin.ListNoPara     as LP
 
 -- Steps:
 -- 
@@ -65,12 +66,17 @@ transformDoc subst =
    tweakBlock (Header 1 _ [Str "Introduction"]) = Null
    -- tweakBlock (Header n at xs) = Header (n+2) at xs
    tweakBlock (RawBlock "html" s) | isPrefixOf "<!--[" s && isSuffixOf "]-->" s = Null
-   tweakBlock x = (Atx.fixBlock . Com.fixBlock . Sym.fixBlock subst) x
+   tweakBlock x = ( LP.fixBlock
+                  . Atx.fixBlock . Com.fixBlock . Sym.fixBlock subst) x
    -- Link [Str foo] ("src/xxx",title) --> Link [Str foo] ("blog/src/xxx",title)
    tweakInline :: Unop Inline
-   tweakInline (Link attr inlines (url,title)) | isPrefixOf "src/" url =
+   tweakInline (Link attr inlines (url,title)) | "src/" `isPrefixOf` url =
      Link attr inlines ("/blog/" ++ url,title)
    tweakInline x = (Com.fixInline . Sym.fixInline subst) x
+
+-- [BulletList
+--  [[Para [Str "Well?"]
+--   ,CodeBlock ("",["haskell"],[]) "eggs"]]]
 
 -- Note type type differences:
 -- 
