@@ -8,8 +8,8 @@
 
 ----------------------------------------------------------------------
 -- |
--- Module      :  Main
--- Copyright   :  (c) Conal Elliott 2010-2016
+-- Module      :  Conal.Blogify
+-- Copyright   :  (c) Conal Elliott 2010
 -- License     :  BSD3
 -- 
 -- Maintainer  :  conal@conal.net
@@ -20,10 +20,10 @@
 -- 
 -- Based on <http://johnmacfarlane.net/pandoc/scripting.html>
 --
--- Test with @blogify < test.md > test.html@
+-- Test with @blogify < test.md > test.md.html@
 ----------------------------------------------------------------------
 
-module Main where
+module Conal.Blogify (Unop,transformDoc,rewrite,trimBlankRefs) where
 
 import Data.Monoid (mempty)
 import Control.Arrow (first,second,(***))
@@ -41,10 +41,6 @@ import qualified Network.Gitit.Plugin.BirdtrackShift as Bird
 import qualified Network.Gitit.Plugin.Comment        as Com
 import qualified Network.Gitit.Plugin.Ordinal        as Ord
 import qualified Network.Gitit.Plugin.ReviveATX      as Atx
-import qualified Network.Gitit.Plugin.ListNoPara     as LP
-
-main :: IO ()
-main = interact rewrite
 
 -- Steps:
 -- 
@@ -72,11 +68,10 @@ transformDoc subst =
    tweakBlock (Header 1 _ [Str "Introduction"]) = Null
    -- tweakBlock (Header n at xs) = Header (n+2) at xs
    tweakBlock (RawBlock "html" s) | isPrefixOf "<!--[" s && isSuffixOf "]-->" s = Null
-   tweakBlock x = ( LP.fixBlock
-                  . Atx.fixBlock . Com.fixBlock . Sym.fixBlock subst) x
+   tweakBlock x = (Atx.fixBlock . Com.fixBlock . Sym.fixBlock subst) x
    -- Link [Str foo] ("src/xxx",title) --> Link [Str foo] ("blog/src/xxx",title)
    tweakInline :: Unop Inline
-   tweakInline (Link attr inlines (url,title)) | "src/" `isPrefixOf` url =
+   tweakInline (Link attr inlines (url,title)) | isPrefixOf "src/" url =
      Link attr inlines ("/blog/" ++ url,title)
    tweakInline x = (Com.fixInline . Sym.fixInline subst) x
 
