@@ -29,12 +29,19 @@ Library
                        Network.Gitit.Plugin.Ordinal
                        Network.Gitit.Plugin.ListNoPara
 
-  build-depends:       base<5, containers, mtl
-                     , pandoc >= 1.11.1, gitit >= 0.12.1.1
+  build-depends:       base<5
+                     , containers
+                     , gitit >= 0.12.1.1
+                     , mtl
+                     , options >= 1.2.1.1
+                     , pandoc >= 1.11.1
 
 Executable blogify
   Hs-Source-Dirs:      src
   Main-is:             Main.hs
   Other-Modules:       Paths_gitit_to_blog
-  build-depends:       base<5, containers
-                     , gitit >= 0.12.1.1, pandoc >= 1.11.1
+  build-depends:       base<5
+                     , containers
+                     , gitit >= 0.12.1.1
+                     , options >= 1.2.1.1
+                     , pandoc >= 1.11.1
