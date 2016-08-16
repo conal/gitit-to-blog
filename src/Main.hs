@@ -222,8 +222,5 @@ rewrite = trimBlankRefs
         . Bird.process
 
 fixAtx :: Unop String
-fixAtx str | n > 0 = replicate n '=' ++ rest
-           | otherwise = str
- where
-   (hashes,rest) = span (== '#') str
-   n = length hashes
+fixAtx (span (== '#') -> (length -> n,' ':rest)) | n > 0 = replicate n '=' ++ rest
+fixAtx str = str
