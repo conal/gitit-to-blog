@@ -36,6 +36,8 @@ import Data.Data
 
 import Text.Pandoc
 
+import Options
+
 import qualified Network.Gitit.Plugin.FixSymbols     as Sym
 import qualified Network.Gitit.Plugin.BirdtrackShift as Bird
 import qualified Network.Gitit.Plugin.Comment        as Com
@@ -43,8 +45,28 @@ import qualified Network.Gitit.Plugin.Ordinal        as Ord
 import qualified Network.Gitit.Plugin.ReviveATX      as Atx
 import qualified Network.Gitit.Plugin.ListNoPara     as LP
 
+data BOptions = BOptions { optPrivate :: Bool }
+
+instance Options BOptions where
+  defineOptions = BOptions
+                   <$> simpleOption "private" False "Whether to drop .private sections"
+
 main :: IO ()
-main = interact rewrite
+main = runCommand $ \ BOptions{..} _args -> do
+         -- print optPrivate
+         interact (rewrite (if optPrivate then dropPrivateBlocks else id))
+
+rewrite :: Unop Pandoc -> Unop String
+rewrite prepass =
+    trimBlankRefs
+  . writeDoc
+  . uncurry transformDoc
+  . second (prepass . readDoc . unlines)
+  . extractSubst
+  . map fixAtx
+  . lines
+  . Bird.process
+
 
 -- Steps:
 -- 
@@ -211,15 +233,6 @@ rewrite :: Unop String
 --         . readDoc
 --         . onLines dropMeta
 --         . Bird.process
-
-rewrite = trimBlankRefs
-        . writeDoc
-        . uncurry transformDoc
-        . second (readDoc . unlines)
-        . extractSubst
-        . map fixAtx
-        . lines
-        . Bird.process
 
 fixAtx :: Unop String
 fixAtx (span (== '#') -> (length -> n,' ':rest)) | n > 0 = replicate n '=' ++ rest
