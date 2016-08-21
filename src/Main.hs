@@ -1,6 +1,7 @@
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# OPTIONS_GHC -Wall #-}
 
 {-# OPTIONS_GHC -fno-warn-unused-imports #-} -- TEMP
@@ -87,7 +88,6 @@ transformDoc :: Sym.Subst -> Unop Pandoc
 transformDoc subst =
     bottomUp (concatMap Ord.fixInline)
   . bottomUp tweakInline . bottomUp tweakBlock
-  . dropPrivateBlocks
  where
    tweakBlock :: Unop Block
    tweakBlock (RawBlock "html" "<!-- references -->") = Null
@@ -224,15 +224,6 @@ writeDoc = writeHtmlString $
 --   <script type="text/javascript" src=".../MathMLinHTML.js"></script>
 -- 
 -- Instead, for now, I copy from the browser.
-
-rewrite :: Unop String
-
--- rewrite = trimBlankRefs
---         . writeDoc
---         . transformDoc mempty
---         . readDoc
---         . onLines dropMeta
---         . Bird.process
 
 fixAtx :: Unop String
 fixAtx (span (== '#') -> (length -> n,' ':rest)) | n > 0 = replicate n '=' ++ rest
