@@ -1,4 +1,4 @@
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE CPP, PatternGuards #-}
 {-# OPTIONS_GHC -Wall #-}
 ----------------------------------------------------------------------
 -- |
@@ -22,16 +22,22 @@ module Network.Gitit.Plugin.FixSymbols
   ( plugin, rewriter, fixInline, fixBlock, Unop, Subst
   ) where
 
+-- #define NumSuffix
+
 import Network.Gitit.Interface
 
 import Data.Char (isUpper)
 import Data.Maybe (fromMaybe,isJust)
 import Data.List (isSuffixOf)
-
 import Data.Monoid (Monoid(..))
 import qualified Data.Map as Map
 import Data.Map (Map)
 import Control.Applicative ((<$>))
+#ifdef NumSuffix
+import Control.Arrow ((***))
+import Data.Tuple (swap)
+import Data.Char (isDigit)
+#endif
 
 import Control.Monad.State.Class (get)
 
@@ -53,11 +59,17 @@ plugin = PageTransform $ \ p ->
 -- mkPageTransform :: Data a => (a -> a) -> Plugin
 -- mkPageTransform fn = PageTransform $ return . bottomUp fn
 
+defaultHaskellInline :: Bool
+defaultHaskellInline = True -- False
+
 fixInline :: Subst -> Unop Inline
-fixInline specials (Code attr@(_,classes,_) s)
-  | "url" `notElem` classes = Code attr (translate subst s)
+fixInline specials (Code attr@(ident,classes,keyVals) s)
+  | "url" `notElem` classes = Code attr' (translate subst s)
  where
     subst = specials `mappend` substMap
+    -- default to haskell if no classes are given
+    attr' | null classes && defaultHaskellInline = (ident,["haskell"],keyVals)
+          | otherwise                            = attr
 fixInline _ x               = x
 
 -- The url exception is thanks to Travis Cardwell.
@@ -105,6 +117,7 @@ fixLex (ss@(q:_)) | isQuantifier q       -- forall a b c. ...
                   , (before,(".":after)) <- break (== ".") ss =
  before ++ (dotLex : fixLex after)   
 fixLex (s@(c:_):".":ss) | isUpper c = fixLex ((s++"."):ss) -- qualified name
+fixLex (s@(c:_):('.':s'):ss) | isUpper c = fixLex ((s++"."):s':ss) -- qualified name
 fixLex (s : ss) = s : fixLex ss
 
 dotLex :: String
@@ -116,9 +129,27 @@ stripParens _ = Nothing
 
 translateLex :: Subst -> Unop String
 translateLex subst ('\\':s') | isJust (Map.lookup s' subst) = s'
-translateLex subst s = fromMaybe s $ Map.lookup s subst
+translateLex subst s = numSuffix $ fromMaybe s $ Map.lookup s subst
 
 -- The first translateLex case avoids rewriting backslash-escaped lexemes.
+
+numSuffix :: Unop String
+#if 1
+-- highlighting-kate 0.6.2.1 splits non-ascii characters.
+-- See <https://github.com/jgm/highlighting-kate/issues/92>
+numSuffix = id
+#else
+numSuffix str | null pre  = str
+              | otherwise = pre ++ map tweak suf
+ where
+   (pre,suf) = spanr isDigit str
+   tweak c = toEnum (fromEnum c + offset)
+   offset = fromEnum '₀' - fromEnum '0'
+
+-- Like span but from the right
+spanr :: (a -> Bool) -> [a] -> ([a],[a])
+spanr p = swap . (reverse *** reverse) . span p . reverse
+#endif
 
 {- 
 
@@ -156,7 +187,7 @@ substMap = Map.fromList $
   , ("=~","≅")
   -- Move subsets of the rest into specific pages, via the "subst-map"
   -- metadata tag.
-  , (":->", "↣"), (":->:","⇰") -- or ⇢, ↦, ↣, ➵, ➟
+  , (":->", "↣"), (":->:","↣") -- or ⇢, ↦, ⇰, ➵, ➟
   , (":>", "⇴")
   , (":-+>", "☞"), ("-->", "⇢"), ("~>", "↝"), ("~>*", "↝*"), ("<~", "↜"), ("*<~", "*↜"), (":=>","⇨") 
   , ("+>", "↦"), ("<+", "↤")
@@ -194,7 +225,7 @@ substMap = Map.fromList $
 -- Prelude's 'lex', but preserves spaces and end-of-line comments.
 lexString :: String -> [String]
 lexString "" = []
-lexString (s@('-':'-':_)) = line : lexString rest
+lexString (s@('-':'-':' ':_)) = line : lexString rest
  where
    (line,rest) = break (== '\n') s
 lexString (c:s') | c `elem` " \n\t" = [c] : lexString s'
