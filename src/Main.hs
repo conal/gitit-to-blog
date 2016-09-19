@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ViewPatterns #-}
@@ -55,19 +56,20 @@ instance Options BOptions where
 main :: IO ()
 main = runCommand $ \ BOptions{..} _args -> do
          -- print optPrivate
-         interact (rewrite (if optPrivate then dropPrivateBlocks else id))
+         interact (rewrite optPrivate)
 
-rewrite :: Unop Pandoc -> Unop String
-rewrite prepass =
+rewrite :: Bool -> Unop String
+rewrite private =
     trimBlankRefs
-  . writeDoc
+  . writeDoc private
   . uncurry transformDoc
   . second (prepass . readDoc . unlines)
   . extractSubst
   . map fixAtx
   . lines
   . Bird.process
-
+ where
+   prepass = if private then dropPrivateBlocks else id
 
 -- Steps:
 -- 
@@ -91,7 +93,7 @@ transformDoc subst =
  where
    tweakBlock :: Unop Block
    tweakBlock (RawBlock "html" "<!-- references -->") = Null
-   tweakBlock (Header 1 _ [Str "Introduction"]) = Null
+   -- tweakBlock (Header 1 _ [Str "Introduction"]) = Null
    -- tweakBlock (Header n at xs) = Header (n+2) at xs
    tweakBlock (RawBlock "html" s) | isPrefixOf "<!--[" s && isSuffixOf "]-->" s = Null
    tweakBlock x = ( LP.fixBlock
@@ -210,13 +212,34 @@ htmlMath = MathML Nothing -- LaTeXMathML Nothing
 -- MathML & LaTeXMathML work great in Firefox but not Safari or Chrome.
 -- I could try JSMath again
 
-writeDoc :: Pandoc -> String
-writeDoc = writeHtmlString $
-            def { writerHTMLMathMethod = htmlMath
-                , writerHighlight      = True
---                 , writerNumberSections  = True
-                , writerTableOfContents = True   -- Doesn't.
-                }
+writeDoc :: Bool -> Pandoc -> String
+writeDoc private =
+  writeHtmlString $
+    def { writerHTMLMathMethod = htmlMath
+        , writerHighlight      = True
+        -- , writerNumberSections  = True
+        -- , writerTableOfContents = True
+        , writerStandalone = True -- needed for TOC
+        , writerTemplate = wTemplate private
+        }
+
+-- Without writerTemplate, I lose all of my output when writerStandalone = True.
+wTemplate :: Bool -> String
+wTemplate private = unlines
+  [ 
+    "<title>$title$</title>"
+  , "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"/>"
+  , "<script src=\"" ++ mathJaxUrl ++ "/MathJax.js?config=TeX-AMS-MML_HTMLorMML\" type=\"text/javascript\"></script>"
+  , "<link rel=\"stylesheet\" href=\"file:///Users/conal/Journals/Current/wikidata/static/css/custom.css\" media=\"all\" type=\"text/css\"/>"
+  , "<style>blockquote { padding-top: 0em; }</style>"
+  , "<style media=print>body { font-size:70%; }</style>"
+  , "<body>"
+  , "$body$"
+  , "</body>"
+  ]
+ where
+   mathJaxUrl | private   = "https://cdn.mathjax.org/mathjax/latest"
+              | otherwise = "file:///Users/conal/Downloads/MathJax-master"
 
 -- There is another critically important step, which is to include the
 -- contents of data/MathMLinHTML.js from Pandoc in my blog.
