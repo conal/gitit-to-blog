@@ -24,20 +24,21 @@ plugin :: Plugin
 plugin = PageTransform $ return . bottomUp (concatMap fixInline)
 
 fixInline :: Inline -> [Inline]
-fixInline (Str s) | Just (n,suff,punct) <- splitOrdinal s =
-  [Str (show n), Superscript [Str suff], Str punct]
+fixInline (Str s) | Just (punctA,n,suff,punctB) <- splitOrdinal s =
+  [Str punctA, Str (show n), Superscript [Str suff], Str punctB]
 fixInline x = [x]
 
 -- | Split an ordinal string in prefix & suffix. For instance, "21st" ->
 -- Just ("21","st"). Note: allows questionable ordinals like "23th".
 
-splitOrdinal :: String -> Maybe (Int,String,String)
+splitOrdinal :: String -> Maybe (String,Int,String,String)
 -- splitOrdinal s | [(n,suff)] <- reads s, isOrdinalSuffix suff = Just (n,suff,"")
 -- splitOrdinal _ = Nothing
-splitOrdinal s = do (n,suff1) <- listToMaybe (reads s)
-                    let (osuff, punct) = splitAt 2 suff1
-                    guard (isOrdinalSuffix osuff && all isPunctuation punct)
-                    return (n,osuff,punct)
+splitOrdinal s = do let (punctA,suff0) = span isPunctuation s
+                    (n,suff1) <- listToMaybe (reads suff0)
+                    let (osuff, punctB) = splitAt 2 suff1
+                    guard (isOrdinalSuffix osuff && all isPunctuation punctB)
+                    return (punctA,n,osuff,punctB)
 
 isOrdinalSuffix :: String -> Bool
 isOrdinalSuffix = (`elem` ["st", "nd", "rd", "th"])
