@@ -3,10 +3,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE QuasiQuotes #-}
 {-# OPTIONS_GHC -Wall #-}
 
 {-# OPTIONS_GHC -fno-warn-unused-imports #-} -- TEMP
-{-# OPTIONS_GHC -fno-warn-unused-binds   #-} -- TEMP
+-- {-# OPTIONS_GHC -fno-warn-unused-binds   #-} -- TEMP
 
 ----------------------------------------------------------------------
 -- |
@@ -25,17 +26,22 @@
 -- Test with @blogify < test.md > test.html@
 ----------------------------------------------------------------------
 
+-- -- Ordinal with superscript?
+-- #define OrdinalSuper
+
 module Main where
 
 import Data.Monoid (mempty)
-import Control.Arrow (first,second,(***))
+import Control.Arrow (first,second,(***),(&&&))
 import Data.Maybe (fromMaybe,mapMaybe)
 import Data.List (isPrefixOf,isSuffixOf)
+import Data.Char (isSpace)
 import Data.Set (insert)
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Data
+import Debug.Trace (trace)
 
+import qualified Data.String.QQ as QQ
 import Text.Pandoc
 
 import Options
@@ -43,9 +49,11 @@ import Options
 import qualified Network.Gitit.Plugin.FixSymbols     as Sym
 import qualified Network.Gitit.Plugin.BirdtrackShift as Bird
 import qualified Network.Gitit.Plugin.Comment        as Com
-import qualified Network.Gitit.Plugin.Ordinal        as Ord
 import qualified Network.Gitit.Plugin.ReviveATX      as Atx
 import qualified Network.Gitit.Plugin.ListNoPara     as LP
+#ifdef OrdinalSuper
+import qualified Network.Gitit.Plugin.Ordinal        as Ord
+#endif
 
 data BOptions = BOptions { optPrivate :: Bool }
 
@@ -59,6 +67,12 @@ main = runCommand $ \ BOptions{..} _args -> do
          interact (rewrite optPrivate)
 
 rewrite :: Bool -> Unop String
+#if 0
+rewrite private str =
+  let doc = readDoc str in
+    -- show doc ++
+    writeDoc private doc
+#else
 rewrite private =
     trimBlankRefs
   . writeDoc private
@@ -70,6 +84,7 @@ rewrite private =
   . Bird.process
  where
    prepass = if private then dropPrivateBlocks else id
+#endif
 
 -- Steps:
 -- 
@@ -87,9 +102,13 @@ rewrite private =
 type Unop a = a -> a
 
 transformDoc :: Sym.Subst -> Unop Pandoc
-transformDoc subst =
-    bottomUp (concatMap Ord.fixInline)
-  . bottomUp tweakInline . bottomUp tweakBlock
+transformDoc subst doc@(Pandoc _meta _) =
+  -- trace (show meta) $
+#ifdef OrdinalSuper
+  bottomUp (concatMap Ord.fixInline) .
+#endif
+  bottomUp tweakInline . bottomUp tweakBlock
+  $ doc
  where
    tweakBlock :: Unop Block
    tweakBlock (RawBlock "html" "<!-- references -->") = Null
@@ -143,22 +162,38 @@ url: http://conal.net/blog/posts/adding-numbers/
 ...
 -}
 
+fixAtx :: Unop String
+fixAtx (span (== '#') -> (length -> n,' ':rest)) | n > 0 = replicate n '=' ++ rest
+fixAtx str = str
+
 onLines :: Unop [String] -> Unop String
 onLines h = unlines . h . lines
 
--- Drop metadata
-dropMeta :: Unop [String]
-dropMeta ("---":rest) = tail $ dropWhile (/= "...") rest
-dropMeta ss = ss
+-- -- Drop metadata
+-- dropMeta :: Unop [String]
+-- dropMeta ("---":rest) = tail $ dropWhile (/= "...") rest
+-- dropMeta ss = ss
 
 extractSubst :: [String] -> (Sym.Subst,[String])
 extractSubst =
-    first (Map.fromList . read . fromMaybe "[]" . Map.lookup "substMap")
+    first (Map.fromList . uncurry mappend . (oldStyle &&& newStyle))
   . captureMeta
+ where
+   newStyle = parseSubst . fromMaybe "[]" . Map.lookup "subst"
+   oldStyle = read       . fromMaybe "[]" . Map.lookup "substMap"
+
+parseSubst :: String -> [(String,String)]
+parseSubst = map (second (dropWhile isSpace) . break isSpace) . read
+
+-- str1 :: String
+-- str1 = "[\"&&& △\",\"*** ×\",\"||| ▽\",\"+++ +\",\"|- ⊢\",\"<~ ⤺\",\"k (↝)\",\"op (⊙)\",\"--> ⇨\",\"+-> ➔\",\":*: ✖\",\":+: ➕\",\":->? ⤔\",\"Unit ()\",\"R ℝ\",\"Unit 𝟙\"]"
 
 captureMeta :: [String] -> (Map String String, [String])
-captureMeta ("---":rest) = (toMetaMap *** tail) $ span (/= "...") rest
-captureMeta ss = (mempty,ss)
+captureMeta ("---":rest) = (toMetaMap *** tail) $ break isMetaEnd rest
+captureMeta ss           = (mempty,ss)
+
+isMetaEnd :: String -> Bool
+isMetaEnd = (`elem` ["...", "---"])
 
 toMetaMap :: [String] -> Map String String
 toMetaMap = Map.fromList . mapMaybe parseMetaLine
@@ -185,7 +220,6 @@ trimNewlines s                         = s
 nlChars :: String
 nlChars = "\n\r"
 
-
 trimBlankRefs :: Unop String
 trimBlankRefs = trimNewlines
               . dropPrefix "<!-- references -->"
@@ -199,6 +233,7 @@ readerOptions = def
   }
  where
    exts = -- insert Ext_header_attributes $
+          insert Ext_emoji $  -- :smile:
           insert Ext_literate_haskell $
           readerExtensions def
 
@@ -215,31 +250,133 @@ htmlMath = MathML Nothing -- LaTeXMathML Nothing
 writeDoc :: Bool -> Pandoc -> String
 writeDoc private =
   writeHtmlString $
-    def { writerHTMLMathMethod = htmlMath
-        , writerHighlight      = True
-        -- , writerNumberSections  = True
-        -- , writerTableOfContents = True
-        , writerStandalone = True -- needed for TOC
-        , writerTemplate = wTemplate private
+    def { writerHTMLMathMethod    = MathJax mathJaxUrl
+                                    -- LaTeXMathML (Just mathJaxUrl)
+                                    -- htmlMath
+        , writerHighlight         = True
+        -- , writerNumberSections = True
+        , writerTableOfContents   = True
+        , writerTOCDepth          = 8
+        , writerStandalone        = True -- needed for TOC
+        , writerTemplate          = wTemplate private
         }
+ where
+   mathJaxUrl = mathJaxLoc ++ "/MathJax.js?config=TeX-AMS-MML_HTMLorMML"
+   mathJaxLoc | private   = "https://cdn.mathjax.org/mathjax/latest"
+              | otherwise = "file:///Users/conal/Downloads/MathJax-master"
+
+-- <script src="file:///Users/conal/Downloads/MathJax-master/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
 
 -- Without writerTemplate, I lose all of my output when writerStandalone = True.
+-- I got this content by running "pandoc -D html", and trimming
 wTemplate :: Bool -> String
+#if 1
+wTemplate _private = [QQ.s|
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"$if(lang)$ lang="$lang$" xml:lang="$lang$"$endif$$if(dir)$ dir="$dir$"$endif$>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+$for(author-meta)$
+  <meta name="author" content="$author-meta$" />
+$endfor$
+$if(date-meta)$
+  <meta name="date" content="$date-meta$" />
+$endif$
+$if(keywords)$
+  <meta name="keywords" content="$for(keywords)$$keywords$$sep$, $endfor$" />
+$endif$
+  <title>$if(title-prefix)$$title-prefix$ – $endif$$pagetitle$</title>
+  <style type="text/css">code{white-space: pre;}</style>
+$if(quotes)$
+  <style type="text/css">q { quotes: "“" "”" "‘" "’"; }</style>
+$endif$
+$if(highlighting-css)$
+  <style type="text/css">
+$highlighting-css$
+  </style>
+$endif$
+<link rel="stylesheet" href="file:///Users/conal/Journals/Current/wikidata/static/css/custom.css" media="all" type="text/css"/>
+$for(css)$
+  <link rel="stylesheet" href="$css$" type="text/css" />
+$endfor$
+$if(math)$
+  $math$
+$endif$
+$for(header-includes)$
+  $header-includes$
+$endfor$
+</head>
+<body>
+$for(include-before)$
+$include-before$
+$endfor$
+$if(title)$
+<div id="$idprefix$header">
+<h1 class="title">$title$</h1>
+$if(subtitle)$
+<h1 class="subtitle">$subtitle$</h1>
+$endif$
+$for(author)$
+<h2 class="author">$author$</h2>
+$endfor$
+$if(date)$
+<h3 class="date">$date$</h3>
+$endif$
+</div>
+$endif$
+$if(toc)$
+<div id="$idprefix$TOC">
+$toc$
+</div>
+$endif$
+$body$
+$for(include-after)$
+$include-after$
+$endfor$
+</body>
+</html>
+|]
+#else
 wTemplate private = unlines
-  [ 
-    "<title>$title$</title>"
-  , "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"/>"
-  , "<script src=\"" ++ mathJaxUrl ++ "/MathJax.js?config=TeX-AMS-MML_HTMLorMML\" type=\"text/javascript\"></script>"
-  , "<link rel=\"stylesheet\" href=\"file:///Users/conal/Journals/Current/wikidata/static/css/custom.css\" media=\"all\" type=\"text/css\"/>"
-  , "<style>blockquote { padding-top: 0em; }</style>"
-  , "<style media=print>body { font-size:70%; }</style>"
+  [ "<head>"
+  , "  <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"/>"
+  , "  <script src=\"" ++ mathJaxUrl ++ "/MathJax.js?config=TeX-AMS-MML_HTMLorMML\" type=\"text/javascript\"></script>"
+  , "  <link rel=\"stylesheet\" href=\"file:///Users/conal/Journals/Current/wikidata/static/css/custom.css\" media=\"all\" type=\"text/css\"/>"
+  , "  <style>blockquote { padding-top: 0em; }</style>"
+  , "  <style media=print>body { font-size:70%; }</style>"
+
+  , "  <script>MathJax.Hub.Config({tex2jax: {inlineMath: [['$$','$$'], ['\\\\(','\\\\)']], processEscapes: true}});</script>"
+
+  -- , "$if(math)$ $math$ $endif$"
+  , "<title>$title$</title>"
+  , "</head>"
   , "<body>"
+
+--   , "$if(title)$"
+--   , "<div id=\"$idprefix$header\">"
+--   , "<h1 class=\"title\">$title$</h1>"
+--   , "$if(subtitle)$"
+--   , "<h1 class=\"subtitle\">$subtitle$</h1>"
+--   , "$endif$"
+--   , "$for(author)$"
+--   , "<h2 class=\"author\">$author$</h2>"
+--   , "$endfor$"
+--   , "$if(date)$"
+--   , "<h3 class=\"date\">$date$</h3>"
+--   , "$endif$"
+--   , "</div>"
+--   , "$endif$"
+
+  , "$if(toc)$", "<div id=\"$idprefix$TOC\">", "$toc$", "</div>", "$endif$"
   , "$body$"
   , "</body>"
   ]
  where
    mathJaxUrl | private   = "https://cdn.mathjax.org/mathjax/latest"
               | otherwise = "file:///Users/conal/Downloads/MathJax-master"
+#endif
 
 -- There is another critically important step, which is to include the
 -- contents of data/MathMLinHTML.js from Pandoc in my blog.
@@ -247,7 +384,3 @@ wTemplate private = unlines
 --   <script type="text/javascript" src=".../MathMLinHTML.js"></script>
 -- 
 -- Instead, for now, I copy from the browser.
-
-fixAtx :: Unop String
-fixAtx (span (== '#') -> (length -> n,' ':rest)) | n > 0 = replicate n '=' ++ rest
-fixAtx str = str
