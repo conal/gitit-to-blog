@@ -1,5 +1,9 @@
-{-# LANGUAGE CPP, PatternGuards #-}
+{-# LANGUAGE CPP, PatternGuards, ScopedTypeVariables, ViewPatterns #-}
+
 {-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -fno-warn-unused-imports #-} -- TEMP
+{-# OPTIONS_GHC -fno-warn-unused-binds #-} -- TEMP
+
 ----------------------------------------------------------------------
 -- |
 -- Module      :  Network.Gitit.Plugin.FixSymbols
@@ -26,10 +30,11 @@ module Network.Gitit.Plugin.FixSymbols
 
 import Network.Gitit.Interface
 
-import Data.Char (isUpper)
-import Data.Maybe (fromMaybe,isJust)
-import Data.List (isSuffixOf)
-import Data.Monoid (Monoid(..))
+import Data.Char (isUpper,isSpace)
+import Data.Maybe (fromMaybe,isJust,listToMaybe)
+import Data.List (isSuffixOf,intercalate)
+import Data.Monoid (Monoid(..),(<>))
+import Control.Monad ((<=<))
 import qualified Data.Map as Map
 import Data.Map (Map)
 import Control.Applicative ((<$>))
@@ -40,6 +45,14 @@ import Data.Char (isDigit)
 #endif
 
 import Control.Monad.State.Class (get)
+
+-- Experimental
+import Data.Default
+import Text.Pandoc.Options (ReaderOptions(..))
+import Text.Pandoc.Readers.Markdown
+import Data.String
+import Data.Text (Text)
+import Data.Yaml
 
 -- | Transformation
 type Unop a = a -> a
@@ -52,9 +65,49 @@ plugin :: Plugin
 
 plugin = PageTransform $ \ p ->
   do Context { ctxMeta = meta } <- get
-     -- liftIO $ putStrLn $ "meta data: " ++ show meta
+     liftIO $ putStrLn $ "meta data: " ++ show meta
      let specials = Map.fromList (fromMaybe [] (read <$> lookup "substMap" meta))
+                    <> fromMaybe mempty ((mvToSubst <=< parseSubstMV <=< lookup "subst") meta)
+     liftIO $ putStrLn $ "specials: " ++ show specials
      return $ rewriter specials p
+
+-- In Text.Pandoc.Readers.Markdown:
+-- 
+--   toMetaValue :: ReaderOptions -> Text -> Either PandocError MetaValue
+--
+-- But not exported. :(
+-- Instead, use readMarkdown.
+
+str1 :: String
+str1 = "[\"&&& △\",\"*** ×\",\"||| ▽\",\"+++ +\",\"|- ⊢\",\"<~ ⤺\",\"k (↝)\",\"op (⊙)\",\"--> ⇨\",\"+-> ➔\",\":*: ✖\",\":+: ➕\",\":->? ⤔\",\"Unit ()\",\"R ℝ\",\"Unit 𝟙\"]"
+
+parseSubstMV :: String -> Maybe MetaValue
+parseSubstMV str =
+  case readMarkdown def ("---\nsubst: " ++ str ++ "\n---") of
+    Right (Pandoc (Meta m) _) -> Map.lookup "subst" m
+    Left _                    -> Nothing
+
+-- [MetaList [MetaInlines [Str "Unit",Space,Str "()"],...]]
+mvToSubst :: MetaValue -> Maybe Subst
+mvToSubst (MetaList m) = Map.fromList <$> mapM toStr m
+ where
+   toStr (MetaInlines [Str from,Space,Str to]) = Just (from,to)
+   toStr _                       = Nothing
+mvToSubst _ = Nothing
+
+
+-- Oops: "+" becomes `MetaBlocks [BulletList [[]]]`
+-- instead of `MetaInlines [Str "+"]`
+
+-- Maybe I don't really want to use JSON style maps for subst, since I don't
+-- want gitit to parse them.
+
+mkSubst :: MetaValue -> Subst
+mkSubst (MetaMap m) = unString <$> m
+ where
+   unString (MetaString str) = str
+   unString v = "oops: " ++ show v
+mkSubst _ = mempty
 
 -- mkPageTransform :: Data a => (a -> a) -> Plugin
 -- mkPageTransform fn = PageTransform $ return . bottomUp fn
@@ -233,3 +286,23 @@ lexString s | [(h,t)] <- lex s = h : lexString t
 lexString (c:s') = [c] : lexString s'
 
 -- To do: Fix up code segments within comments.
+
+{--------------------------------------------------------------------
+    Fix old-style substMap
+--------------------------------------------------------------------}
+
+
+
+updateSubst :: Unop String
+updateSubst s =
+  case updateSubstS s of
+    [(s',[])] -> s'
+    _         -> s
+
+updateSubstS :: ReadS String
+updateSubstS s0 =
+  do ("substMap",':': (dropWhile isSpace -> s1)) <- lex s0
+     (pairs :: [(String,String)], s2) <- reads s1
+     return ("subst: [" ++ intercalate "," (map updPair pairs) ++ "]", s2)
+ where
+   updPair (from,to) = "\"" ++ from ++ " " ++ to ++ "\""
