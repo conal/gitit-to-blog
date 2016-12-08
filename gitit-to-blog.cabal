@@ -31,10 +31,14 @@ Library
 
   build-depends:       base<5
                      , containers
+                     , data-default >= 0.6.0
                      , gitit >= 0.12.1.1
                      , mtl
                      , options >= 1.2.1.1
                      , pandoc >= 1.11.1
+                     , string-qq
+                     , text
+                     , yaml
 
 Executable blogify
   Hs-Source-Dirs:      src
@@ -42,6 +46,9 @@ Executable blogify
   Other-Modules:       Paths_gitit_to_blog
   build-depends:       base<5
                      , containers
+                     , data-default >= 0.6.0
                      , gitit >= 0.12.1.1
                      , options >= 1.2.1.1
                      , pandoc >= 1.11.1
+                     , text
+                     , yaml
