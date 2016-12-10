@@ -28,6 +28,7 @@
 module Main where
 
 import Data.Monoid (mempty)
+import Control.Monad ((>=>))
 import Control.Arrow (first,second,(***))
 import Data.Maybe (fromMaybe,mapMaybe)
 import Data.List (isPrefixOf,isSuffixOf)
@@ -152,9 +153,7 @@ dropMeta ("---":rest) = tail $ dropWhile (/= "...") rest
 dropMeta ss = ss
 
 extractSubst :: [String] -> (Sym.Subst,[String])
-extractSubst =
-    first (Map.fromList . read . fromMaybe "[]" . Map.lookup "substMap")
-  . captureMeta
+extractSubst = first Sym.lookupSubst . captureMeta
 
 captureMeta :: [String] -> (Map String String, [String])
 captureMeta ("---":rest) = (toMetaMap *** tail) $ span (/= "...") rest
@@ -184,7 +183,6 @@ trimNewlines s                         = s
 
 nlChars :: String
 nlChars = "\n\r"
-
 
 trimBlankRefs :: Unop String
 trimBlankRefs = trimNewlines
