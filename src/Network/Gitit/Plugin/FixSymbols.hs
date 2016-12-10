@@ -23,7 +23,7 @@
 ----------------------------------------------------------------------
 
 module Network.Gitit.Plugin.FixSymbols
-  ( plugin, rewriter, fixInline, fixBlock, Unop, Subst
+  ( plugin, rewriter, fixInline, fixBlock, Unop, Subst, lookupSubst
   ) where
 
 -- #define NumSuffix
@@ -66,10 +66,14 @@ plugin :: Plugin
 plugin = PageTransform $ \ p ->
   do Context { ctxMeta = meta } <- get
      liftIO $ putStrLn $ "meta data: " ++ show meta
-     let specials = Map.fromList (fromMaybe [] (read <$> lookup "substMap" meta))
-                    <> fromMaybe mempty ((mvToSubst <=< parseSubstMV <=< lookup "subst") meta)
-     liftIO $ putStrLn $ "specials: " ++ show specials
+     let specials = lookupSubst (Map.fromList meta)
+     -- liftIO $ putStrLn $ "specials: " ++ show specials
      return $ rewriter specials p
+
+lookupSubst :: Map String String -> Map String String
+lookupSubst meta =
+  Map.fromList (fromMaybe [] (read <$> Map.lookup "substMap" meta))
+  <> fromMaybe mempty ((mvToSubst <=< parseSubstMV <=< Map.lookup "subst") meta)
 
 -- In Text.Pandoc.Readers.Markdown:
 -- 
