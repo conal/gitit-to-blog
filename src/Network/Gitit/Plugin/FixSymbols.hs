@@ -256,8 +256,9 @@ substMap = Map.fromList $
   , ("||","∨"), ("&&","∧") -- maybe
   , ("abutWE","(⇔)"), ("abutSN","(⇕)")
   -- Experimental. Notation from "Calculating Functional Programs"
-  -- Moved into specific blog posts
-  -- , ("&&&","△"), ("***", "×"), ("|||","▽"), ("+++","+")
+  , ("&&&","△"), ("***", "×"), ("|||","▽"),("+++","+")
+  -- GHC.Generics functor building blocks
+  , (":.:","∘"),(":*:","✖"),(":+:","➕")
   , ("alpha","α") , ("beta","β") , ("gamma","γ") , ("delta","δ")
   , ("epsilon","ε") , ("zeta","ζ") , ("eta","η") , ("theta","θ")
   , ("iota","ι") , ("kappa","κ") , ("lambda","λ") , ("mu","μ") , ("nu","ν")
