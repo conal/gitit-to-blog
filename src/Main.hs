@@ -38,6 +38,7 @@ import qualified Data.Map as Map
 import Data.Data
 
 import Text.Pandoc
+import Text.Pandoc.Options (WriterOptions(..))
 
 import Options
 
@@ -198,6 +199,7 @@ readerOptions = def
  where
    exts = -- insert Ext_header_attributes $
           insert Ext_literate_haskell $
+          insert Ext_emoji $
           readerExtensions def
 
 readDoc :: String -> Pandoc
@@ -217,8 +219,8 @@ writeDoc private =
         , writerHighlight      = True
         -- , writerNumberSections  = True
         -- , writerTableOfContents = True
-        , writerStandalone = True -- needed for TOC
-        , writerTemplate = wTemplate private
+        -- , writerStandalone = True -- needed for TOC  -- removed from Pandoc?
+        , writerTemplate = Just (wTemplate private)
         }
 
 -- Without writerTemplate, I lose all of my output when writerStandalone = True.
