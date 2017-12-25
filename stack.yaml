@@ -1,10 +1,7 @@
 flags: {}
 extra-deps:
-- filestore-0.6.2
-- gitit-0.12.2
-- json-0.9.1
-- monads-tf-0.1.0.3
-- options-1.2.1.1
+- filestore-0.6.3.1
+- gitit-0.12.2.1
 - recaptcha-0.1.0.3
 - uri-0.1.6.4
-resolver: nightly-2016-07-18
+resolver: lts-8.0
