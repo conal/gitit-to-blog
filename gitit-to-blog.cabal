@@ -2,7 +2,7 @@ Name:                gitit-to-blog
 Version:             0.2.0
 Synopsis:            Convert a gitit-friendly markdown page to HTML with various transformations
 Category:            text
-Cabal-Version:       >= 1.6
+Cabal-Version:       >= 1.8
 Description:
   Convert a gitit-friendly markdown page to HTML, including various transformations
   .
@@ -44,11 +44,19 @@ Executable blogify
   Hs-Source-Dirs:      src
   Main-is:             Main.hs
   Other-Modules:       Paths_gitit_to_blog
+                       Network.Gitit.Plugin.BirdtrackShift
+                       Network.Gitit.Plugin.Comment
+                       Network.Gitit.Plugin.FixSymbols
+                       Network.Gitit.Plugin.ListNoPara
+                       Network.Gitit.Plugin.Ordinal
+                       Network.Gitit.Plugin.ReviveATX
   build-depends:       base<5
                      , containers
+                     , mtl
                      , data-default >= 0.6.0
                      , gitit >= 0.12.1.1
                      , options >= 1.2.1.1
                      , pandoc >= 1.11.1
                      , text
                      , yaml
+                     , gitit-to-blog

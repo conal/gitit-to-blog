@@ -25,6 +25,8 @@
 -- Test with @blogify < test.md > test.html@
 ----------------------------------------------------------------------
 
+-- #define WITH_ATX
+
 module Main where
 
 import Data.Monoid (mempty)
@@ -46,7 +48,9 @@ import qualified Network.Gitit.Plugin.FixSymbols     as Sym
 import qualified Network.Gitit.Plugin.BirdtrackShift as Bird
 import qualified Network.Gitit.Plugin.Comment        as Com
 import qualified Network.Gitit.Plugin.Ordinal        as Ord
+#ifdef WITH_ATX
 import qualified Network.Gitit.Plugin.ReviveATX      as Atx
+#endif
 import qualified Network.Gitit.Plugin.ListNoPara     as LP
 
 data BOptions = BOptions { optPrivate :: Bool }
@@ -67,7 +71,9 @@ rewrite private =
   . uncurry transformDoc
   . second (prepass . readDoc . unlines)
   . extractSubst
+#ifdef WITH_ATX
   . map fixAtx
+#endif
   . lines
   . Bird.process
  where
@@ -99,7 +105,12 @@ transformDoc subst =
    -- tweakBlock (Header n at xs) = Header (n+2) at xs
    tweakBlock (RawBlock "html" s) | isPrefixOf "<!--[" s && isSuffixOf "]-->" s = Null
    tweakBlock x = ( LP.fixBlock
-                  . Atx.fixBlock . Com.fixBlock . Sym.fixBlock subst) x
+#ifdef WITH_ATX
+                  . Atx.fixBlock
+#endif
+                  . Com.fixBlock
+                  . Sym.fixBlock subst
+                  ) x
    -- Link [Str foo] ("src/xxx",title) --> Link [Str foo] ("blog/src/xxx",title)
    tweakInline :: Unop Inline
    tweakInline (Link attr inlines (url,title)) | "src/" `isPrefixOf` url =
