@@ -25,7 +25,7 @@
 -- Test with @blogify < test.md > test.html@
 ----------------------------------------------------------------------
 
--- #define WITH_ATX
+#define WITH_ATX
 
 module Main where
 
