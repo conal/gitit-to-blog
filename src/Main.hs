@@ -51,7 +51,7 @@ import qualified Network.Gitit.Plugin.Ordinal        as Ord
 #ifdef WITH_ATX
 import qualified Network.Gitit.Plugin.ReviveATX      as Atx
 #endif
-import qualified Network.Gitit.Plugin.ListNoPara     as LP
+-- import qualified Network.Gitit.Plugin.ListNoPara     as LP
 
 data BOptions = BOptions { optPrivate :: Bool }
 
@@ -97,14 +97,16 @@ type Unop a = a -> a
 transformDoc :: Sym.Subst -> Unop Pandoc
 transformDoc subst =
     bottomUp (concatMap Ord.fixInline)
-  . bottomUp tweakInline . bottomUp tweakBlock
+  . bottomUp tweakInline
+  . bottomUp tweakBlock
  where
    tweakBlock :: Unop Block
    tweakBlock (RawBlock "html" "<!-- references -->") = Null
    -- tweakBlock (Header 1 _ [Str "Introduction"]) = Null
    -- tweakBlock (Header n at xs) = Header (n+2) at xs
    tweakBlock (RawBlock "html" s) | isPrefixOf "<!--[" s && isSuffixOf "]-->" s = Null
-   tweakBlock x = ( LP.fixBlock
+   tweakBlock x = ( id
+                  -- . LP.fixBlock  -- Nope!
 #ifdef WITH_ATX
                   . Atx.fixBlock
 #endif
