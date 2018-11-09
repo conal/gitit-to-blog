@@ -236,7 +236,7 @@ substMap = Map.fromList $
   , (":-*","⊸")
   , ("\\","λ"), ("/\\","Λ")
   , ("lub","(⊔)"), ("glb","(⊓)"), ("[=","⊑"), ("]=","⊒")
-  , ("mempty","∅"), ("mappend","(♢)"),("<>","♢")
+  , ("mempty","ε" {-"∅"-}), ("mappend","(♢)"),("<>","♢")
   -- , ("mappend","(⊕)") -- , ("op","(⊙)")
   -- , ("<*>","⊛")
   , ("undefined","⊥") -- , ("bottom","⊥")
@@ -260,7 +260,7 @@ substMap = Map.fromList $
   -- Experimental. Notation from "Calculating Functional Programs"
   , ("&&&","△"), ("***", "×"), ("|||","▽"),("+++","+")
   -- GHC.Generics functor building blocks
-  , (":.:","∘"),(":*:","✖"),(":+:","➕")
+  -- , (":.:","∘"),(":*:","✖"),(":+:","➕")
   , ("alpha","α") , ("beta","β") , ("gamma","γ") , ("delta","δ")
   , ("epsilon","ε") , ("zeta","ζ") , ("eta","η") , ("theta","θ")
   , ("iota","ι") , ("kappa","κ") , ("lambda","λ") , ("mu","μ") , ("nu","ν")
