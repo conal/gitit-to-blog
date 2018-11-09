@@ -4,4 +4,8 @@ extra-deps:
 - gitit-0.12.2.1
 - recaptcha-0.1.0.3
 - uri-0.1.6.4
-resolver: lts-8.0
+- hoauth2-0.5.9
+
+# resolver: lts-8.0
+resolver: lts-9.20 # ghc-8.0.2
+# resolver: lts-11.12 # ghc-8.2.2
