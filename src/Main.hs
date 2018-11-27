@@ -38,6 +38,7 @@ import Data.Set (insert)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Data
+import Data.Text (pack,unpack)
 
 import Text.Pandoc
 import Text.Pandoc.Options (WriterOptions(..))
@@ -206,35 +207,41 @@ trimBlankRefs = trimNewlines
 readerOptions :: ReaderOptions
 readerOptions = def
   { readerExtensions = exts
-  , readerSmart      = True
+  -- , readerSmart      = True
   -- , readerOldDashes  = True         -- double hyphen for emdash
   }
  where
-   exts = -- insert Ext_header_attributes $
-          insert Ext_literate_haskell $
-          insert Ext_emoji $
+   exts = extensionsFromList [
+            -- Ext_header_attributes $
+              Ext_literate_haskell
+            , Ext_emoji
+            , Ext_smart
+            ] `mappend`
           readerExtensions def
 
 readDoc :: String -> Pandoc
+
 readDoc = either (error . ("readDoc: readMarkdown failed: " ++) . show) id .
-          readMarkdown readerOptions
+          runPure . readMarkdown readerOptions . pack
 
 htmlMath :: HTMLMathMethod
-htmlMath = MathML Nothing -- LaTeXMathML Nothing
+htmlMath = MathML -- Nothing -- LaTeXMathML Nothing
 
 -- MathML & LaTeXMathML work great in Firefox but not Safari or Chrome.
 -- I could try JSMath again
 
 writeDoc :: Bool -> Pandoc -> String
 writeDoc private =
-  writeHtmlString $
-    def { writerHTMLMathMethod = htmlMath
-        , writerHighlight      = True
+  either show unpack .
+  runPure .
+  writeHtml4String
+    (def { writerHTMLMathMethod = htmlMath
+        -- , writerHighlight      = True  -- Not in Pandoc 2.4. Replacement?
         -- , writerNumberSections  = True
         -- , writerTableOfContents = True
         -- , writerStandalone = True -- needed for TOC  -- removed from Pandoc?
         , writerTemplate = Just (wTemplate private)
-        }
+        })
 
 -- Without writerTemplate, I lose all of my output when writerStandalone = True.
 wTemplate :: Bool -> String

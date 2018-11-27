@@ -1,4 +1,8 @@
-{-# LANGUAGE CPP, PatternGuards, ScopedTypeVariables, ViewPatterns #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ViewPatterns #-}
+-- {-# LANGUAGE OverloadedStrings #-}
 
 {-# OPTIONS_GHC -Wall #-}
 {-# OPTIONS_GHC -fno-warn-unused-imports #-} -- TEMP
@@ -33,6 +37,7 @@ import Network.Gitit.Interface
 import Data.Char (isUpper,isSpace)
 import Data.Maybe (fromMaybe,isJust,listToMaybe)
 import Data.List (isSuffixOf,intercalate)
+import Data.String (fromString)
 import Data.Monoid (Monoid(..),(<>))
 import Control.Monad ((<=<))
 import qualified Data.Map as Map
@@ -48,6 +53,7 @@ import Control.Monad.State.Class (get)
 
 -- Experimental
 import Data.Default
+import Text.Pandoc.Class (runPure)
 import Text.Pandoc.Options (ReaderOptions(..))
 import Text.Pandoc.Readers.Markdown
 import Data.String
@@ -87,7 +93,7 @@ str1 = "[\"&&& △\",\"*** ×\",\"||| ▽\",\"+++ +\",\"|- ⊢\",\"<~ ⤺\",\"k 
 
 parseSubstMV :: String -> Maybe MetaValue
 parseSubstMV str =
-  case readMarkdown def ("---\nsubst: " ++ str ++ "\n---") of
+  case runPure (readMarkdown def (fromString ("---\nsubst: " ++ str ++ "\n---"))) of
     Right (Pandoc (Meta m) _) -> Map.lookup "subst" m
     Left _                    -> Nothing
 
