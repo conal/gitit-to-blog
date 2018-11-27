@@ -25,7 +25,7 @@
 -- Test with @blogify < test.md > test.html@
 ----------------------------------------------------------------------
 
-#define WITH_ATX
+-- #define WITH_ATX
 
 module Main where
 
@@ -39,6 +39,8 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Data
 import Data.Text (pack,unpack)
+
+import Debug.Trace
 
 import Text.Pandoc
 import Text.Pandoc.Options (WriterOptions(..))
@@ -211,21 +213,19 @@ readerOptions = def
   -- , readerOldDashes  = True         -- double hyphen for emdash
   }
  where
-   exts = extensionsFromList [
-            -- Ext_header_attributes $
-              Ext_literate_haskell
-            , Ext_emoji
-            , Ext_smart
-            ] `mappend`
-          readerExtensions def
+   exts = extensionsFromList
+            []  -- Fill in as needed
+          `mappend` pandocExtensions
 
 readDoc :: String -> Pandoc
-
-readDoc = either (error . ("readDoc: readMarkdown failed: " ++) . show) id .
+readDoc = -- traceShowId .
+          either (error . ("readDoc: readMarkdown failed: " ++) . show) id .
           runPure . readMarkdown readerOptions . pack
 
 htmlMath :: HTMLMathMethod
-htmlMath = MathML -- Nothing -- LaTeXMathML Nothing
+htmlMath = MathJax "path-goes-here" -- doesn't seem to appear in the HMTL output
+           -- PlainMath
+           -- MathML -- Nothing -- LaTeXMathML Nothing
 
 -- MathML & LaTeXMathML work great in Firefox but not Safari or Chrome.
 -- I could try JSMath again
@@ -236,12 +236,12 @@ writeDoc private =
   runPure .
   writeHtml4String
     (def { writerHTMLMathMethod = htmlMath
-        -- , writerHighlight      = True  -- Not in Pandoc 2.4. Replacement?
-        -- , writerNumberSections  = True
-        -- , writerTableOfContents = True
-        -- , writerStandalone = True -- needed for TOC  -- removed from Pandoc?
-        , writerTemplate = Just (wTemplate private)
-        })
+         -- , writerHighlight      = True  -- Not in Pandoc 2.4. Replacement?
+         -- , writerNumberSections  = True
+         -- , writerTableOfContents = True
+         -- , writerStandalone = True -- needed for TOC  -- removed from Pandoc?
+         , writerTemplate = Just (wTemplate private)
+         })
 
 -- Without writerTemplate, I lose all of my output when writerStandalone = True.
 wTemplate :: Bool -> String
