@@ -25,7 +25,7 @@
 -- Test with @blogify < test.md > test.html@
 ----------------------------------------------------------------------
 
--- #define WITH_ATX
+#define WITH_ATX
 
 module Main where
 
@@ -214,7 +214,10 @@ readerOptions = def
   }
  where
    exts = extensionsFromList
-            []  -- Fill in as needed
+            [ -- Fill in as needed
+            -- Ext_autolink_bare_uris  -- Can gitit?
+            Ext_literate_haskell
+            ]
           `mappend` pandocExtensions
 
 readDoc :: String -> Pandoc
@@ -269,5 +272,5 @@ wTemplate private = unlines
 -- Instead, for now, I copy from the browser.
 
 fixAtx :: Unop String
-fixAtx (span (== '#') -> (length -> n,' ':rest)) | n > 0 = replicate n '=' ++ rest
+fixAtx (span (== '#') -> (length -> n,' ':rest)) | n > 0 = replicate n '=' ++ " " ++ rest
 fixAtx str = str
