@@ -247,7 +247,8 @@ substMap = Map.fromList $
   -- , ("<*>","⊛")
   , ("undefined","⊥") -- , ("bottom","⊥")
   , ("<-","←"), ("-<", "⤙") -- "−≺"
-  , ("::","∷"), ("..","‥"), ("...","⋯")
+  , ("::","∷"), ("..","‥")
+  -- , ("...","⋯")
   , ("==","≡"), ("/=","≠")
   , ("=~","≅")
   -- Move subsets of the rest into specific pages, via the "subst-map"
