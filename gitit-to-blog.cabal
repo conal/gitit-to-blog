@@ -1,5 +1,5 @@
 Name:                gitit-to-blog
-Version:             0.2.0
+Version:             0.2.1
 Synopsis:            Convert a gitit-friendly markdown page to HTML with various transformations
 Category:            text
 Cabal-Version:       >= 1.8
@@ -28,6 +28,7 @@ Library
                        Network.Gitit.Plugin.Comment
                        Network.Gitit.Plugin.Ordinal
                        Network.Gitit.Plugin.ListNoPara
+                       Network.Gitit.Plugin.BlockquotePlain
 
   build-depends:       base<5
                      , containers
@@ -48,6 +49,7 @@ Executable blogify
                        Network.Gitit.Plugin.Comment
                        Network.Gitit.Plugin.FixSymbols
                        Network.Gitit.Plugin.ListNoPara
+                       Network.Gitit.Plugin.BlockquotePlain
                        Network.Gitit.Plugin.Ordinal
                        Network.Gitit.Plugin.ReviveATX
   build-depends:       base<5

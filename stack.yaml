@@ -27,7 +27,7 @@ extra-deps:
 
 # resolver: lts-9.21  # ghc-8.0.2
 # resolver: lts-11.22 # ghc-8.2.2
-# resolver: lts-12.14 # ghc-8.4.3
-resolver: lts-12.19 # ghc-8.4.4
+resolver: lts-12.14 # ghc-8.4.3
+# resolver: lts-12.19 # ghc-8.4.4
 
-# resolver: lts-12.4 # match gitit
+# resolver: lts-14.4 # ghc-8.6.5

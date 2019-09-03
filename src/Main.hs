@@ -54,6 +54,7 @@ import qualified Network.Gitit.Plugin.Ordinal        as Ord
 #ifdef WITH_ATX
 import qualified Network.Gitit.Plugin.ReviveATX      as Atx
 #endif
+import qualified Network.Gitit.Plugin.BlockquotePlain as BP
 -- import qualified Network.Gitit.Plugin.ListNoPara     as LP
 
 data BOptions = BOptions { optPrivate :: Bool }
@@ -102,6 +103,8 @@ transformDoc subst =
     bottomUp (concatMap Ord.fixInline)
   . bottomUp tweakInline
   . bottomUp tweakBlock
+  . bottomUp BP.fixBlocks
+  -- . BP.fixPandoc
  where
    tweakBlock :: Unop Block
    tweakBlock (RawBlock "html" "<!-- references -->") = Null
@@ -216,7 +219,8 @@ readerOptions = def
    exts = extensionsFromList
             [ -- Fill in as needed
             -- Ext_autolink_bare_uris  -- Can gitit?
-            Ext_literate_haskell
+              Ext_literate_haskell
+            , Ext_emoji
             ]
           `mappend` pandocExtensions
 
@@ -255,7 +259,8 @@ wTemplate private = unlines
   , "<script src=\"" ++ mathJaxUrl ++ "/MathJax.js?config=TeX-AMS-MML_HTMLorMML\" type=\"text/javascript\"></script>"
   , "<link rel=\"stylesheet\" href=\"file:///Users/conal/Journals/Current/wikidata/static/css/custom.css\" media=\"all\" type=\"text/css\"/>"
   , "<style>blockquote { padding-top: 0em; }</style>"
-  , "<style media=print>body { font-size:100%; }</style>"
+  -- , "<style media=print>body { font-size:100%; }</style>"
+  , "<style>body { font-size:89%; }</style>"
   , "<body>"
   , "$body$"
   , "</body>"
