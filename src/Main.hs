@@ -25,7 +25,8 @@
 -- Test with @blogify < test.md > test.html@
 ----------------------------------------------------------------------
 
-#define WITH_ATX
+-- -- I'm no longer expecting literate haskell with birdtracks.
+-- #define LITERATE
 
 module Main where
 
@@ -51,7 +52,7 @@ import qualified Network.Gitit.Plugin.FixSymbols     as Sym
 import qualified Network.Gitit.Plugin.BirdtrackShift as Bird
 import qualified Network.Gitit.Plugin.Comment        as Com
 import qualified Network.Gitit.Plugin.Ordinal        as Ord
-#ifdef WITH_ATX
+#ifdef LITERATE
 import qualified Network.Gitit.Plugin.ReviveATX      as Atx
 #endif
 import qualified Network.Gitit.Plugin.BlockquotePlain as BP
@@ -75,7 +76,7 @@ rewrite private =
   . uncurry transformDoc
   . second (prepass . readDoc . unlines)
   . extractSubst
-#ifdef WITH_ATX
+#ifdef LITERATE
   . map fixAtx
 #endif
   . lines
@@ -104,7 +105,6 @@ transformDoc subst =
   . bottomUp tweakInline
   . bottomUp tweakBlock
   . bottomUp BP.fixBlocks
-  -- . BP.fixPandoc
  where
    tweakBlock :: Unop Block
    tweakBlock (RawBlock "html" "<!-- references -->") = Null
@@ -113,7 +113,7 @@ transformDoc subst =
    tweakBlock (RawBlock "html" s) | isPrefixOf "<!--[" s && isSuffixOf "]-->" s = Null
    tweakBlock x = ( id
                   -- . LP.fixBlock  -- Nope!
-#ifdef WITH_ATX
+#ifdef LITERATE
                   . Atx.fixBlock
 #endif
                   . Com.fixBlock
@@ -218,9 +218,11 @@ readerOptions = def
  where
    exts = extensionsFromList
             [ -- Fill in as needed
-            -- Ext_autolink_bare_uris  -- Can gitit?
-              Ext_literate_haskell
-            , Ext_emoji
+            -- Ext_autolink_bare_uris,  -- Can gitit?
+#ifdef LITERATE
+            Ext_literate_haskell,
+#endif
+            Ext_emoji
             ]
           `mappend` pandocExtensions
 
