@@ -1,5 +1,5 @@
 Name:                gitit-to-blog
-Version:             0.2.1
+Version:             0.3
 Synopsis:            Convert a gitit-friendly markdown page to HTML with various transformations
 Category:            text
 Cabal-Version:       >= 1.8
@@ -37,9 +37,10 @@ Library
                      , mtl
                      , options >= 1.2.1.1
                      , pandoc >= 1.11.1
-                     , string-qq
                      , text
                      , yaml
+
+                     -- , string-qq
 
 Executable blogify
   Hs-Source-Dirs:      src
