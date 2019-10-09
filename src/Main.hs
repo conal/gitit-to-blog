@@ -222,6 +222,7 @@ readerOptions = def
 #ifdef LITERATE
             Ext_literate_haskell,
 #endif
+            Ext_autolink_bare_uris,
             Ext_emoji
             ]
           `mappend` pandocExtensions
@@ -232,9 +233,10 @@ readDoc = -- traceShowId .
           runPure . readMarkdown readerOptions . pack
 
 htmlMath :: HTMLMathMethod
-htmlMath = MathJax "path-goes-here" -- doesn't seem to appear in the HMTL output
-           -- PlainMath
-           -- MathML -- Nothing -- LaTeXMathML Nothing
+htmlMath = -- MathJax "path-goes-here" -- doesn't seem to appear in the HMTL output
+           PlainMath
+           -- MathML
+           -- LaTeXMathML Nothing
 
 -- MathML & LaTeXMathML work great in Firefox but not Safari or Chrome.
 -- I could try JSMath again
