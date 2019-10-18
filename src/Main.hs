@@ -233,10 +233,9 @@ readDoc = -- traceShowId .
           runPure . readMarkdown readerOptions . pack
 
 htmlMath :: HTMLMathMethod
-htmlMath = -- MathJax "path-goes-here" -- doesn't seem to appear in the HMTL output
-           PlainMath
-           -- MathML
-           -- LaTeXMathML Nothing
+htmlMath = MathJax "path-goes-here" -- doesn't seem to appear in the HMTL output
+           -- PlainMath
+           -- MathML -- Nothing -- LaTeXMathML Nothing
 
 -- MathML & LaTeXMathML work great in Firefox but not Safari or Chrome.
 -- I could try JSMath again
@@ -256,11 +255,11 @@ writeDoc private =
 
 -- Without writerTemplate, I lose all of my output when writerStandalone = True.
 wTemplate :: Bool -> String
-wTemplate _private = unlines
+wTemplate private = unlines
   [ 
     "<title>$title$</title>"
   , "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"/>"
-  -- , "<script src=\"" ++ mathJaxUrl ++ "/MathJax.js?config=TeX-AMS-MML_HTMLorMML\" type=\"text/javascript\"></script>"
+  , "<script src=\"" ++ mathJaxUrl ++ "/MathJax.js?config=TeX-AMS-MML_HTMLorMML\" type=\"text/javascript\"></script>"
   , "<link rel=\"stylesheet\" href=\"file:///Users/conal/Journals/Current/wikidata/static/css/custom.css\" media=\"all\" type=\"text/css\"/>"
   , "<style>blockquote { padding-top: 0em; }</style>"
   -- , "<style media=print>body { font-size:100%; }</style>"
@@ -269,9 +268,9 @@ wTemplate _private = unlines
   , "$body$"
   , "</body>"
   ]
- -- where
- --   mathJaxUrl | private   = "https://cdn.mathjax.org/mathjax/latest"
- --              | otherwise = "file:///Users/conal/Downloads/MathJax-master"
+ where
+   mathJaxUrl | private   = "https://cdn.mathjax.org/mathjax/latest"
+              | otherwise = "file:///Users/conal/Downloads/MathJax-master"
 
 -- There is another critically important step, which is to include the
 -- contents of data/MathMLinHTML.js from Pandoc in my blog.
